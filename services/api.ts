@@ -117,9 +117,9 @@ export class ApiService {
       );
       // If registration returns token, persist it
       if (response.data.success && response.data.data) {
-        const { sessionId, user, tokens } = response.data.data;
+        const { user, tokens } = response.data.data;
         await persistSession(
-          sessionId || user?.id || Date.now().toString(),
+          user?.id.toString() || Date.now().toString(),
           user,
           tokens?.accessToken || null,
           tokens?.refreshToken || null

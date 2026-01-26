@@ -46,8 +46,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuccess })
             onPress: () => {
               if (onLoginSuccess) {
                 onLoginSuccess();
-              } else {
-                navigation.replace("Homepage");
+                // onLoginSuccess will handle navigation reset to Homepage
+                // No need to call navigation.replace here
               }
             },
           },

@@ -7,6 +7,7 @@ import {
   Animated,
   TouchableOpacity,
   Dimensions,
+  BackHandler,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { NavigationProps } from "../types/navigation";
@@ -23,26 +24,30 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Entrance animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim, scaleAnim]);
+    loadUserData();
+
+    // Prevent back navigation to auth screens
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        // Return true to prevent default back behavior
+        // User must use logout button to go back
+        Alert.alert(
+          "Thoát ứng dụng",
+          "Bạn có muốn thoát ứng dụng không?",
+          [
+            { text: "Hủy", style: "cancel" },
+            { text: "Thoát", onPress: () => BackHandler.exitApp() },
+          ]
+        );
+        return true;
+      }
+    );
+
+    return () => {
+      backHandler.remove();
+    };
+  }, []);
 
   // Mock user data
   const userData = {
@@ -197,20 +202,33 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
           ))}
         </View>
       </Animated.View>
-
-      {/* Skills Section */}
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <FontAwesome name="code" size={20} color={COLORS.accent} />
-          <Text style={styles.cardTitle}>Kỹ năng lập trình</Text>
+          <View style={styles.cardContent}>
+            <InfoRow
+              icon="at"
+              label="Tên đăng nhập"
+              value={currentUser?.username || "N/A"}
+            />
+            <InfoRow
+              icon="envelope"
+              label="Email"
+              value={currentUser?.email || "N/A"}
+            />
+            <InfoRow
+              icon="phone"
+              label="Số điện thoại"
+              value={currentUser?.phoneNumber || "Chưa cập nhật"}
+            />
+            <InfoRow
+              icon="shield"
+              label="Vai trò"
+              value={currentUser?.role || "USER"}
+            />
+            <InfoRow
+              icon={currentUser?.isActive ? "check-circle" : "times-circle"}
+              label="Trạng thái"
+              value={currentUser?.isActive ? "Hoạt động" : "Không hoạt động"}
+            />
+          </View>
         </View>
 
         <View style={styles.cardContent}>
@@ -310,7 +328,7 @@ const styles = StyleSheet.create({
     position: "relative",
     paddingTop: 60,
     // Increase bottom padding so text isn't overlapped by the card
-    paddingBottom: SIZES.xxxl || SIZES.xxl + 24,
+    paddingBottom: SIZES.xxl + 24,
   },
   heroBackground: {
     position: "absolute",

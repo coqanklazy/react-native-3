@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +17,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 export default function App(): React.JSX.Element {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
 
   // Check if user is already logged in when app starts
   useEffect(() => {
@@ -36,67 +37,92 @@ export default function App(): React.JSX.Element {
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
+    // Reset navigation stack to clear auth screen history
+    setTimeout(() => {
+      navigationRef.current?.reset({
+        index: 0,
+        routes: [{ name: 'Homepage' }],
+      });
+    }, 0);
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    // Reset navigation stack to Login screen (not Intro to avoid 10s loading)
+    setTimeout(() => {
+      navigationRef.current?.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }, 0);
   };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar style="auto" />
       <Stack.Navigator
         initialRouteName={isLoggedIn ? "Homepage" : "Intro"}
         screenOptions={{
           headerShown: false,
           gestureEnabled: false,
-          animationEnabled: true,
         }}
       >
-        {isLoggedIn ? (
-          // App Stack - User is logged in
-          <Stack.Screen
-            name="Homepage"
-            options={{
-              animationTypeForReplace: isLoading ? 'none' : 'pop',
-            }}
-          >
-            {(props) => (
-              <HomepageScreen {...props} onLogout={handleLogout} />
-            )}
-          </Stack.Screen>
-        ) : (
-          // Auth Stack - User is not logged in
-          <Stack.Group
-            screenOptions={{
-              animationTypeForReplace: isLoading ? 'none' : 'pop',
-            }}
-          >
-            <Stack.Screen name="Intro" component={IntroScreen} />
-            <Stack.Screen name="Welcome" component={WelcomeScreen} />
-            <Stack.Screen
-              name="Login"
-              options={{
-                animationEnabled: true,
-              }}
-            >
-              {(props) => (
-                <LoginScreen {...props} onLoginSuccess={handleLoginSuccess} />
-              )}
-            </Stack.Screen>
-            <Stack.Screen
-              name="Register"
-              options={{
-                animationEnabled: true,
-              }}
-            >
-              {(props) => (
-                <RegisterScreen {...props} onRegisterSuccess={handleLoginSuccess} />
-              )}
-            </Stack.Screen>
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-          </Stack.Group>
-        )}
+        {/* Auth Screens */}
+        <Stack.Screen
+          name="Intro"
+          component={IntroScreen}
+          options={{
+            animationEnabled: !isLoggedIn,
+          }}
+        />
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
+          options={{
+            animationEnabled: !isLoggedIn,
+          }}
+        />
+        <Stack.Screen
+          name="Login"
+          options={{
+            animationEnabled: !isLoggedIn,
+          }}
+        >
+          {(props) => (
+            <LoginScreen {...props} onLoginSuccess={handleLoginSuccess} />
+          )}
+        </Stack.Screen>
+        <Stack.Screen
+          name="Register"
+          options={{
+            animationEnabled: !isLoggedIn,
+          }}
+        >
+          {(props) => (
+            <RegisterScreen {...props} onRegisterSuccess={handleLoginSuccess} />
+          )}
+        </Stack.Screen>
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+          options={{
+            animationEnabled: !isLoggedIn,
+          }}
+        />
+
+        {/* Homepage Screen */}
+        <Stack.Screen
+          name="Homepage"
+          options={{
+            animationTypeForReplace: isLoggedIn ? 'pop' : 'default',
+            headerLeft: () => null, // Disable back button when logged in
+            gestureEnabled: false,
+          }}
+        >
+          {(props) => (
+            <HomepageScreen {...props} onLogout={handleLogout} />
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

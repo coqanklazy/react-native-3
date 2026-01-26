@@ -139,11 +139,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onRegisterS
             {
               text: "OK",
               onPress: () => {
-                if (onRegisterSuccess) {
-                  onRegisterSuccess();
-                } else {
-                  navigation.navigate("Login");
-                }
+                // Navigate to Login screen for user to login with new account
+                // Don't call onRegisterSuccess - let user login manually
+                navigation.navigate("Login");
               },
             },
           ]
