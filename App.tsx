@@ -26,10 +26,24 @@ export default function App(): React.JSX.Element {
 
   const bootstrapAsync = async () => {
     try {
+      // 🔧 TEMPORARY: Force clear all tokens for testing
+      // TODO: Remove this block when done testing
+      await AsyncStorage.multiRemove([
+        'sessionId',
+        'userData',
+        'accessToken',
+        'refreshToken',
+        'userToken'
+      ]);
+      // 🔧 END TEMPORARY
+
       const token = await AsyncStorage.getItem('userToken');
-      setIsLoggedIn(!!token);
+
+      // 🔧 FORCE: Always start from Login for testing
+      setIsLoggedIn(false);
     } catch (e) {
       console.log('Error checking auth status:', e);
+      setIsLoggedIn(false);
     } finally {
       setIsLoading(false);
     }
@@ -46,22 +60,36 @@ export default function App(): React.JSX.Element {
     }, 0);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Clear ALL tokens from AsyncStorage (same keys as in api.ts clearSession)
+      await AsyncStorage.multiRemove([
+        'sessionId',
+        'userData',
+        'accessToken',
+        'refreshToken',
+        'userToken'
+      ]);
+    } catch (error) {
+      console.log('Error clearing tokens:', error);
+    }
+
     setIsLoggedIn(false);
+
     // Reset navigation stack to Login screen (not Intro to avoid 10s loading)
     setTimeout(() => {
       navigationRef.current?.reset({
         index: 0,
         routes: [{ name: 'Login' }],
       });
-    }, 0);
+    }, 100);
   };
 
   return (
     <NavigationContainer ref={navigationRef}>
       <StatusBar style="auto" />
       <Stack.Navigator
-        initialRouteName={isLoggedIn ? "Homepage" : "Intro"}
+        initialRouteName="Intro"
         screenOptions={{
           headerShown: false,
           gestureEnabled: false,

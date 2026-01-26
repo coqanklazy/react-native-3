@@ -75,7 +75,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuccess })
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+              // If can't go back, do nothing (don't trigger error)
+            }}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Quay lại"

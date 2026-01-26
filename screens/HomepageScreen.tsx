@@ -1,15 +1,18 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Animated,
+  Image,
   TouchableOpacity,
+  Alert,
   Dimensions,
   BackHandler,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { User } from "../types/api";
+import { ApiService } from "../services/api";
 import { NavigationProps } from "../types/navigation";
 import { COLORS, SIZES, FONTS, SHADOWS } from "../constants/theme";
 
@@ -22,6 +25,36 @@ interface HomepageScreenProps extends NavigationProps {
 
 const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  /* 📝 MOCK DATA
+  const userData = {
+    name: "Trương Công Anh",
+    role: "Sinh viên IT",
+    school: "ĐH Công nghệ Kỹ thuật TPHCM",
+    age: 20,
+    major: "Sinh viên IT",
+    field: "Công nghệ thông tin",
+    email: "truongconganh5575@gmail.com",
+    phone: "+84 123 456 789",
+    username: "conganh",
+  };
+
+  const skills = [
+    { name: "TypeScript/React Native", level: 85, color: "#61DAFB" },
+    { name: "JavaScript/ES6+", level: 90, color: "#F7DF1E" },
+    { name: "HTML/CSS", level: 88, color: "#E34C26" },
+    { name: "Git/GitHub", level: 80, color: "#FF6B14" },
+    { name: "Mobile Development", level: 82, color: "#3DDC84" },
+  ];
+
+  const interests = [
+    "Học lập trình",
+    "Phát triển ứng dụng di động",
+    "Công nghệ AI",
+    "Đọc sách công nghệ",
+    "Chơi game",
+  ];
+  */
 
   useEffect(() => {
     loadUserData();
@@ -49,17 +82,20 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
     };
   }, []);
 
-  // Mock user data
-  const userData = {
-    name: "Trương Công Anh",
-    role: "Sinh viên IT",
-    school: "ĐH Công nghệ Kỹ thuật TPHCM",
-    age: 20,
-    major: "Sinh viên IT",
-    field: "Công nghệ thông tin",
-    email: "truongconganh5575@gmail.com",
-    phone: "+84 123 456 789",
-    username: "conganh",
+  const loadUserData = async () => {
+    try {
+      // Check if user is logged in first
+      const token = await ApiService.getAccessToken();
+      if (!token) {
+        console.log("No token found, skipping user data load");
+        return;
+      }
+
+      const user = await ApiService.getCurrentUser();
+      setCurrentUser(user);
+    } catch (error) {
+      console.log("Error loading user data:", error);
+    }
   };
 
   const handleLogout = () => {
@@ -71,17 +107,18 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
         onPress: async () => {
           try {
             await ApiService.logout();
+
+            // Wait a bit to ensure AsyncStorage is updated
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             if (onLogout) {
               onLogout();
-            } else {
-              navigation.replace("Welcome");
             }
           } catch (error) {
             console.log("Logout error:", error);
+            // Even if error, still call onLogout to navigate away
             if (onLogout) {
               onLogout();
-            } else {
-              navigation.replace("Welcome");
             }
           }
         },
@@ -89,18 +126,34 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
     ]);
   };
 
-  const skills = [
-    { name: "TypeScript/React Native", level: 85, color: "#61DAFB" },
-    { name: "JavaScript/ES6+", level: 90, color: "#F7DF1E" },
-    { name: "HTML/CSS", level: 88, color: "#E34C26" },
-    { name: "Git/GitHub", level: 80, color: "#FF6B14" },
-    { name: "Mobile Development", level: 82, color: "#3DDC84" },
-  ];
+  const InfoRow: React.FC<{
+    icon: string;
+    label: string;
+    value: string;
+  }> = ({ icon, label, value }) => (
+    <View style={styles.infoRow}>
+      <View style={styles.infoLeft}>
+        <View style={styles.infoIcon}>
+          <FontAwesome
+            name={icon as any}
+            size={16}
+            color={COLORS.textLight}
+          />
+        </View>
+        <Text style={styles.infoLabel}>{label}</Text>
+      </View>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
 
-  const handleNavigate = (route: string) => {
-    // navigation.navigate(route);
-    console.log("Navigate to:", route);
-  };
+  // If no user data loaded yet, show loading or empty state
+  if (!currentUser) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={styles.footerText}>Đang tải thông tin...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -108,100 +161,48 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Hero Section with Entrance Animation */}
-      <Animated.View
-        style={[
-          styles.heroSection,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-          },
-        ]}
-      >
-        <View style={styles.heroBackground} />
+      {/* Hero Header with Profile */}
+      <View style={styles.heroHeader}>
+        <View style={styles.heroBackground}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+        </View>
 
-        <View style={styles.profileContainer}>
-          {/* Avatar */}
-          <View style={styles.avatarBox}>
-            <View style={styles.avatarInner}>
-              <FontAwesome name="user-circle" size={80} color={COLORS.white} />
+        <View style={styles.profileSection}>
+          <View style={styles.avatarWrapper}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={require("../assets/dacsanvietLogo.webp")}
+                style={styles.avatar}
+                resizeMode="contain"
+                accessibilityLabel="Ảnh đại diện người dùng"
+              />
+            </View>
+            <View style={styles.statusBadge}>
+              <FontAwesome name="check" size={12} color={COLORS.white} />
             </View>
           </View>
 
-          {/* Basic Info */}
-          <Text style={styles.nameText}>{userData.name}</Text>
-          <Text style={styles.roleText}>{userData.role}</Text>
-          <Text style={styles.schoolText}>{userData.school}</Text>
+          <Text style={styles.welcomeText}>Xin chào,</Text>
+          <Text style={styles.userName}>
+            {currentUser?.fullName || "Người dùng"}
+          </Text>
+          <Text style={styles.userEmail}>
+            {currentUser?.email || "user@example.com"}
+          </Text>
         </View>
-      </Animated.View>
+      </View>
 
-      {/* Info Card */}
-      <Animated.View
-        style={[
-          styles.infoCard,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <FontAwesome name="info-circle" size={20} color={COLORS.primary} />
-          <Text style={styles.cardTitle}>Thông tin cá nhân</Text>
-        </View>
-
-        <View style={styles.cardContent}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Họ và tên:</Text>
-            <Text style={styles.infoValue}>{userData.name}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Tuổi:</Text>
-            <Text style={styles.infoValue}>{userData.age}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Nghiệp vụ:</Text>
-            <Text style={styles.infoValue}>{userData.major}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Trường:</Text>
-            <Text style={styles.infoValue}>{userData.school}</Text>
-          </View>
-
-          <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.infoLabel}>Chuyên ngành:</Text>
-            <Text style={styles.infoValue}>{userData.field}</Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Interests Section */}
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <FontAwesome name="heart" size={20} color={COLORS.error} />
-          <Text style={styles.cardTitle}>Sở thích</Text>
-        </View>
-
-        <View style={styles.cardContent}>
-          {interests.map((interest, index) => (
-            <View key={index} style={styles.interestRow}>
-              <FontAwesome name="check" size={16} color={COLORS.primary} />
-              <Text style={styles.interestText}>{interest}</Text>
+      {/* User Info Card */}
+      <View style={styles.content}>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleWrapper}>
+              <FontAwesome name="user" size={20} color={COLORS.primary} />
+              <Text style={styles.cardTitle}>Thông Tin Tài Khoản</Text>
             </View>
-          ))}
-        </View>
-      </Animated.View>
+          </View>
+
           <View style={styles.cardContent}>
             <InfoRow
               icon="at"
@@ -231,83 +232,78 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({ navigation, onLogout })
           </View>
         </View>
 
-        <View style={styles.cardContent}>
-          {skills.map((skill, index) => (
-            <View key={index} style={styles.skillRow}>
-              <View style={styles.skillLeft}>
-                <Text style={styles.skillName}>{skill.name}</Text>
-                <View style={styles.skillBar}>
-                  <View
-                    style={[
-                      styles.skillFill,
-                      {
-                        width: `${skill.level}%`,
-                        backgroundColor: skill.color,
-                      },
-                    ]}
-                  />
-                </View>
+        {/* Quick Actions */}
+        <View style={styles.actionsSection}>
+          <Text style={styles.sectionTitle}>Hành động nhanh</Text>
+
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Cập nhật hồ sơ"
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: COLORS.secondary },
+                ]}
+              >
+                <FontAwesome name="edit" size={24} color={COLORS.white} />
               </View>
-              <Text style={styles.skillLevel}>{skill.level}%</Text>
-            </View>
-          ))}
+              <Text style={styles.actionText}>Cập nhật</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Cài đặt"
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: COLORS.info },
+                ]}
+              >
+                <FontAwesome name="cog" size={24} color={COLORS.white} />
+              </View>
+              <Text style={styles.actionText}>Cài đặt</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Thông báo"
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: COLORS.accent },
+                ]}
+              >
+                <FontAwesome name="bell" size={24} color={COLORS.white} />
+              </View>
+              <Text style={styles.actionText}>Thông báo</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </Animated.View>
 
-      {/* Contact Section */}
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <FontAwesome name="envelope" size={20} color={COLORS.info} />
-          <Text style={styles.cardTitle}>Liên hệ</Text>
-        </View>
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Đăng xuất khỏi tài khoản"
+        >
+          <FontAwesome name="sign-out" size={20} color={COLORS.white} />
+          <Text style={styles.logoutButtonText}>Đăng Xuất</Text>
+        </TouchableOpacity>
 
-        <View style={styles.cardContent}>
-          <TouchableOpacity
-            style={styles.contactRow}
-            onPress={() => handleNavigate("email")}
-            accessibilityRole="button"
-            accessibilityLabel={`Email: ${userData.email}`}
-          >
-            <FontAwesome name="envelope" size={18} color={COLORS.primary} />
-            <Text style={styles.contactText}>{userData.email}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.contactRow}
-            onPress={() => handleNavigate("phone")}
-            accessibilityRole="button"
-            accessibilityLabel={`Điện thoại: ${userData.phone}`}
-          >
-            <FontAwesome name="phone" size={18} color={COLORS.primary} />
-            <Text style={styles.contactText}>{userData.phone}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.contactRow, { borderBottomWidth: 0 }]}
-            onPress={() => handleNavigate("username")}
-            accessibilityRole="button"
-            accessibilityLabel={`Username: ${userData.username}`}
-          >
-            <FontAwesome name="user" size={18} color={COLORS.primary} />
-            <Text style={styles.contactText}>@{userData.username}</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
+        {/* Footer */}
         <Text style={styles.footerText}>Đặc Sản Việt © 2026</Text>
-        <Text style={styles.footerSubText}>
-          Designed with Motion-Driven Portfolio
-        </Text>
       </View>
     </ScrollView>
   );
@@ -319,212 +315,225 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   scrollContent: {
-    paddingVertical: SIZES.xl,
+    flexGrow: 1,
   },
-
 
   // Hero Header
   heroHeader: {
     position: "relative",
     paddingTop: 60,
-    // Increase bottom padding so text isn't overlapped by the card
     paddingBottom: SIZES.xxl + 24,
+    overflow: "hidden",
   },
   heroBackground: {
     position: "absolute",
     top: 0,
-
     left: 0,
     right: 0,
-    height: 320, // slightly taller background to ensure visual separation
+    height: 320,
     backgroundColor: COLORS.primary,
     borderBottomLeftRadius: SIZES.radiusXl,
     borderBottomRightRadius: SIZES.radiusXl,
+    overflow: "hidden",
   },
-  profileContainer: {
-    alignItems: "center",
-    paddingTop: SIZES.xl,
-    paddingBottom: SIZES.lg,
-    zIndex: 10,
+  decorCircle1: {
+    position: "absolute",
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: COLORS.secondary,
+    opacity: 0.3,
+  },
+  decorCircle2: {
+    position: "absolute",
+    bottom: -30,
+    left: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.white,
+    opacity: 0.1,
   },
 
-  // Avatar
-  avatarBox: {
+  // Profile Section
+  profileSection: {
+    alignItems: "center",
+    paddingHorizontal: SIZES.lg,
+  },
+  avatarWrapper: {
+    position: "relative",
+    marginBottom: SIZES.lg,
+  },
+  avatarContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
     backgroundColor: COLORS.white,
     padding: SIZES.md,
-    ...SHADOWS.lg,
-    marginBottom: SIZES.lg,
+    ...SHADOWS.xl,
   },
-  avatarInner: {
+  avatar: {
     width: "100%",
     height: "100%",
-    borderRadius: 55,
-    backgroundColor: COLORS.gray200,
+  },
+  statusBadge: {
+    position: "absolute",
+    bottom: 5,
+    right: 5,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.success,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 3,
+    borderColor: COLORS.white,
   },
-
-  // Hero Text
-  nameText: {
-    ...FONTS.h2,
-    color: COLORS.white,
-    marginBottom: SIZES.xs,
-    textAlign: "center",
-  },
-  roleText: {
+  welcomeText: {
     ...FONTS.body1,
     color: COLORS.white,
-    textAlign: "center",
+    opacity: 0.9,
+  },
+  userName: {
+    ...FONTS.h2,
+    color: COLORS.white,
+    marginTop: SIZES.xs,
     marginBottom: SIZES.xs,
     textAlign: "center",
   },
-  schoolText: {
+  userEmail: {
     ...FONTS.body2,
     color: COLORS.white,
-    opacity: 0.95, // make it a bit more readable on the header
+    opacity: 0.95,
     textAlign: "center",
   },
 
-  // Info Card
-  infoCard: {
-    marginHorizontal: SIZES.lg,
-    marginBottom: SIZES.lg,
+  // Content
+  content: {
+    paddingHorizontal: SIZES.lg,
+  },
+
+  // Card
+  card: {
     backgroundColor: COLORS.white,
     borderRadius: SIZES.radiusXl,
-    // Remove negative margin that caused overlap over the hero area
     marginTop: SIZES.md,
     ...SHADOWS.xl,
   },
   cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
+    padding: SIZES.lg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray100,
+  },
+  cardTitleWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: SIZES.sm,
   },
   cardTitle: {
-    ...FONTS.body1,
+    ...FONTS.h3,
     color: COLORS.text,
-    fontWeight: "600",
   },
   cardContent: {
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
+    padding: SIZES.lg,
   },
 
   // Info Row
   infoRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: SIZES.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray100,
   },
+  infoLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: SIZES.sm,
+  },
+  infoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: COLORS.gray100,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   infoLabel: {
     ...FONTS.body2,
-    color: COLORS.textSecondary,
+    color: COLORS.textLight,
     flex: 1,
   },
   infoValue: {
     ...FONTS.body1,
     color: COLORS.text,
-    fontWeight: "600",
     textAlign: "right",
   },
 
-  // Card (generic)
-  card: {
-    marginHorizontal: SIZES.lg,
-    marginBottom: SIZES.lg,
+  // Actions Section
+  actionsSection: {
+    marginTop: SIZES.xxl,
+  },
+  sectionTitle: {
+    ...FONTS.h3,
+    color: COLORS.text,
+    marginBottom: SIZES.md,
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    gap: SIZES.md,
+  },
+  actionCard: {
+    flex: 1,
     backgroundColor: COLORS.white,
     borderRadius: SIZES.radiusLg,
+    padding: SIZES.lg,
+    alignItems: "center",
     ...SHADOWS.md,
   },
+  actionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: SIZES.radiusMd,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: SIZES.sm,
+  },
+  actionText: {
+    ...FONTS.body2,
+    color: COLORS.text,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 
-  // Interest Row
-  interestRow: {
+  // Logout Button
+  logoutButton: {
+    backgroundColor: COLORS.error,
+    height: SIZES.buttonLg,
+    borderRadius: SIZES.radiusLg,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: SIZES.sm,
+    justifyContent: "center",
     gap: SIZES.sm,
+    marginTop: SIZES.xxl,
+    ...SHADOWS.lg,
   },
-  interestText: {
-    ...FONTS.body2,
-    color: COLORS.text,
-    flex: 1,
-  },
-
-  // Skill Row
-  skillRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: SIZES.lg,
-    gap: SIZES.md,
-  },
-  skillLeft: {
-    flex: 1,
-  },
-  skillName: {
-    ...FONTS.body2,
-    color: COLORS.text,
-    fontWeight: "600",
-    marginBottom: SIZES.xs,
-  },
-  skillBar: {
-    height: 6,
-    backgroundColor: COLORS.gray200,
-    borderRadius: SIZES.radiusSm,
-    overflow: "hidden",
-  },
-  skillFill: {
-    height: "100%",
-    borderRadius: SIZES.radiusSm,
-  },
-  skillLevel: {
-    ...FONTS.body2,
-    color: COLORS.text,
-    fontWeight: "600",
-    minWidth: 40,
-    textAlign: "right",
-  },
-
-  // Contact Row
-  contactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: SIZES.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray100,
-    gap: SIZES.md,
-  },
-  contactText: {
-    ...FONTS.body2,
-    color: COLORS.text,
-    flex: 1,
+  logoutButtonText: {
+    ...FONTS.h4,
+    color: COLORS.white,
   },
 
   // Footer
-  footer: {
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.xxl,
-    alignItems: "center",
-  },
   footerText: {
-    ...FONTS.body1,
-    color: COLORS.text,
-    fontWeight: "600",
-  },
-  footerSubText: {
-    ...FONTS.body3,
-    color: COLORS.textSecondary,
-    marginTop: SIZES.xs,
+    ...FONTS.body2,
+    color: COLORS.textLight,
+    textAlign: "center",
+    marginTop: SIZES.xl,
+    marginBottom: SIZES.xl,
   },
 });
 
