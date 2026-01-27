@@ -88,7 +88,12 @@ const VerifyRegisterOTPScreen: React.FC<VerifyRegisterOTPScreenProps> = ({
         setOtpCode(["", "", "", "", "", ""]);
         Alert.alert("Thành công", "Mã OTP mới đã được gửi đến email của bạn");
       } else {
-        Alert.alert("Lỗi", response.message || "Gửi lại OTP thất bại");
+        // Handle new error format: { errors: [{ resource, field, message }] }
+        if (response.errors && Array.isArray(response.errors) && response.errors.length > 0) {
+          Alert.alert("Lỗi", response.errors[0].message);
+        } else {
+          Alert.alert("Lỗi", response.message || "Gửi lại OTP thất bại");
+        }
       }
     } catch (error) {
       Alert.alert("Lỗi", "Có lỗi xảy ra. Vui lòng thử lại.");
@@ -130,7 +135,12 @@ const VerifyRegisterOTPScreen: React.FC<VerifyRegisterOTPScreenProps> = ({
           ]
         );
       } else {
-        Alert.alert("Lỗi", response.message || "Xác thực OTP thất bại");
+        // Handle new error format: { errors: [{ resource, field, message }] }
+        if (response.errors && Array.isArray(response.errors) && response.errors.length > 0) {
+          Alert.alert("Lỗi", response.errors[0].message);
+        } else {
+          Alert.alert("Lỗi", response.message || "Xác thực OTP thất bại");
+        }
         // Reset OTP inputs on error
         setOtpCode(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();

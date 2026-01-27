@@ -16,7 +16,7 @@ import {
 } from "../types/api";
 
 // API Base URL - thay đổi theo IP máy của bạn (inconfig để xem)
-const API_BASE_URL = "http://10.0.187.144:3001/api";
+const API_BASE_URL = "http://172.16.30.231:3001/api";
 
 // Tạo axios instance
 const apiClient = axios.create({

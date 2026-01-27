@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -30,43 +29,74 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onRegisterS
     fullName: "",
     phoneNumber: "",
   });
+  const [errors, setErrors] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    phoneNumber: "",
+  });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const emailRegex =
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+  const computeErrors = (data: typeof formData) => {
+    const nextErrors = {
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      fullName: "",
+      phoneNumber: "",
+    };
+
+    if (!data.fullName.trim()) {
+      nextErrors.fullName = "Vui lòng nhập họ và tên";
+    }
+
+    if (!data.username.trim()) {
+      nextErrors.username = "Vui lòng nhập tên đăng nhập";
+    } else if (data.username.trim().length < 3) {
+      nextErrors.username = "Tên đăng nhập phải có ít nhất 3 ký tự";
+    }
+
+    if (!data.email.trim()) {
+      nextErrors.email = "Vui lòng nhập email";
+    } else if (!emailRegex.test(data.email.trim().toLowerCase())) {
+      nextErrors.email = "Email không hợp lệ";
+    }
+
+    if (!data.password.trim()) {
+      nextErrors.password = "Vui lòng nhập mật khẩu";
+    } else if (data.password.trim().length < 6) {
+      nextErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    }
+
+    if (!data.confirmPassword.trim()) {
+      nextErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+    } else if (data.confirmPassword !== data.password) {
+      nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+    }
+
+    return nextErrors;
+  };
+
   const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const nextData = { ...formData, [field]: value };
+    setFormData(nextData);
+    // Không validate real-time - chỉ validate khi submit
   };
 
   const validateSendOTP = () => {
-    const { username, email, password, confirmPassword, fullName } = formData;
+    const validation = computeErrors(formData);
+    setErrors(validation);
 
-    if (!username.trim() || !email.trim() || !password.trim() || !fullName.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc");
-      return false;
-    }
-
-    if (username.length < 3) {
-      Alert.alert("Lỗi", "Tên đăng nhập phải có ít nhất 3 ký tự");
-      return false;
-    }
-
-    if (!email.includes("@")) {
-      Alert.alert("Lỗi", "Email không hợp lệ");
-      return false;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp");
-      return false;
-    }
-
-    return true;
+    const hasError = Object.values(validation).some((message) => message.trim().length > 0);
+    return !hasError;
   };
 
   const handleSendOTP = async () => {
@@ -88,10 +118,33 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onRegisterS
           phoneNumber: formData.phoneNumber.trim() || undefined,
         });
       } else {
-        Alert.alert("Lỗi", response.message || "Gửi OTP thất bại");
+        if (response.errors && Array.isArray(response.errors)) {
+          const newErrors = { ...errors };
+          response.errors.forEach((error: any) => {
+            if (error.field && error.message) {
+              const field = error.field as keyof typeof errors;
+              if (field in newErrors) {
+                newErrors[field] = error.message;
+              }
+            }
+          });
+          setErrors(newErrors);
+        } else {
+          const retryInfo = response.retryAfter ? ` (thử lại sau ${response.retryAfter} phút)` : "";
+          setErrors({
+            ...errors,
+            email: `${response.message || "Gửi OTP thất bại"}${retryInfo}`,
+          });
+        }
       }
-    } catch (error) {
-      Alert.alert("Lỗi", "Có lỗi xảy ra. Vui lòng thử lại.");
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        const data = error.response.data;
+        const message = data.message || "Quá nhiều yêu cầu. Vui lòng thử lại sau.";
+        setErrors({ ...errors, email: message });
+      } else {
+        setErrors({ ...errors, email: "Có lỗi xảy ra. Vui lòng thử lại." });
+      }
     } finally {
       setLoading(false);
     }
@@ -123,7 +176,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onRegisterS
           {label} {!options?.optional && <Text style={styles.required}>*</Text>}
         </Text>
         <View
-          style={[styles.inputContainer, value && styles.inputContainerFocused]}
+          style={[
+            styles.inputContainer,
+            value && styles.inputContainerFocused,
+            errors[field] && styles.inputContainerError,
+          ]}
         >
           <FontAwesome
             name={icon as any}
@@ -165,6 +222,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onRegisterS
             </TouchableOpacity>
           )}
         </View>
+        {!!errors[field] && <Text style={styles.errorText}>{errors[field]}</Text>}
       </View>
     );
   };
@@ -356,6 +414,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: COLORS.white,
   },
+  inputContainerError: {
+    borderColor: COLORS.error,
+  },
   inputIcon: {
     marginRight: SIZES.sm,
   },
@@ -372,6 +433,11 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: SIZES.md,
     textAlign: "center",
+  },
+  errorText: {
+    ...FONTS.body3,
+    color: COLORS.error,
+    marginTop: SIZES.xs,
   },
 
   // Buttons
