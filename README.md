@@ -82,7 +82,7 @@ Forgot password: Login → Quên mật khẩu → Nhập email → Nhập OTP �
   </tr>
 </table>
 <div align="center">
-  <em>Giao diện trang chủ với Grab-inspired design</em>
+  <em>Giao diện trang chủ</em>
 </div>
 ### Authentication Flow
 <table>
