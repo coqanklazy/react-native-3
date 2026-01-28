@@ -32,6 +32,9 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data?: T;
+  // Optional properties for error handling and rate limit info
+  errors?: Array<{ resource?: string; field?: string; message: string }>;
+  retryAfter?: number; // minutes or seconds depending on API contract
 }
 
 export interface LoginResponse {

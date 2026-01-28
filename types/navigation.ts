@@ -12,6 +12,9 @@ export type RootStackParamList = {
   };
   ForgotPassword: undefined;
   Homepage: undefined;
+  Cart: undefined;
+  Orders: undefined;
+  Profile: undefined;
 };
 
 export type NavigationProps = {
@@ -22,5 +25,6 @@ export type NavigationProps = {
       params?: RootStackParamList[K]
     ) => void;
     goBack: () => void;
+    canGoBack: () => boolean;
   };
 };

@@ -1,14 +1,44 @@
 # Đặc Sản Việt Mobile App
 
-
-Ứng dụng React Native (TypeScript + Expo) cho đăng nhập/đăng ký không OTP/JWT, giao diện vibrant theo phong cách ẩm thực Việt.
+Ứng dụng React Native (TypeScript + Expo) cho mạng lưới đặc sản Việt Nam với giao diện hiện đại, xác thực OTP, và kiến trúc component modular.
 
 ## Tính năng chính
 
-- Intro 10s, Welcome landing, Login (email/username), Register 6 trường
-- Validation realtime, toggle password, loading state
-- Homepage hiển thị hồ sơ, logout
-- Mock UI cho luồng OTP/Forgot/Reset để tham khảo
+### 🔐 Xác thực & Bảo mật
+- ✅ Đăng ký tài khoản với xác thực OTP qua email
+- ✅ Đăng nhập với JWT tokens (Access & Refresh)
+- ✅ Quên mật khẩu với OTP verification
+- ✅ Đặt lại mật khẩu an toàn
+- ✅ Session management tự động
+- ✅ Auto-refresh token khi hết hạn
+- ✅ Secure storage cho tokens
+
+### 🎨 Giao diện người dùng
+- ✅ **Homepage** với UI/UX hiện đại theo phong cách e-commerce
+- ✅ **Modular Component Architecture** dễ bảo trì và mở rộng
+- ✅ **Custom OTP Input** với animation đẹp mắt
+- ✅ **Bottom Tab Navigation** với 4 tabs: Trang chủ, Ưu đãi, Yêu thích, Tài khoản
+- ✅ **Product Cards** với hình ảnh, giá, giảm giá, và rating
+- ✅ **Category Grid** 4 cột cho danh mục sản phẩm
+- ✅ **Flash Sale Section** với countdown timer
+- ✅ **Recommended Products** với grid layout
+- ✅ **Banner Slider** cho quảng cáo
+- ✅ **Search Header** với giỏ hàng và chat icons
+- ✅ Responsive design tương thích đa thiết bị
+- ✅ Loading states và error handling
+- ✅ Real-time form validation
+
+### 🛠 Công nghệ sử dụng
+- ⚛️ **React Native** với **TypeScript** cho type safety
+- 📱 **Expo SDK** cho rapid development
+- 🧭 **React Navigation v6** (Stack Navigation)
+- 🎨 **NativeWind** (Tailwind CSS for React Native)
+- 🌐 **Axios** cho API calls với interceptors
+- 💾 **AsyncStorage** cho local storage
+- 🪝 **Custom Hooks** (useAuth, useForm, useUser, useHomepage)
+- 🎭 **@expo/vector-icons** (Ionicons, FontAwesome)
+- 🔄 **Auto-refresh tokens** mechanism
+- 📦 **Modular folder structure** theo Clean Architecture
 ## Yêu cầu
 - Node.js 16+, npm/yarn
 - Expo CLI
@@ -38,7 +68,23 @@ Forgot password: Login → Quên mật khẩu → Nhập email → Nhập OTP �
 ```
 
 ## Demo giao diện
-
+### Trang chủ 
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="screenshots/homepage-full.png" width="280" />
+      <br />
+    </td>
+    <td align="center">
+      <img src="screenshots/homepage-full-2.png" width="280" />
+      <br />
+    </td>
+  </tr>
+</table>
+<div align="center">
+  <em>Giao diện trang chủ với Grab-inspired design</em>
+</div>
+### Authentication Flow
 <table>
   <tr>
     <td align="center">
@@ -103,33 +149,62 @@ Forgot password: Login → Quên mật khẩu → Nhập email → Nhập OTP �
 ## Cấu trúc dự án
 
 ```
-BaiTapTuan1_TypeScript/
-├── components/                      # Reusable components
-│   ├── OTPInput.tsx                # Custom OTP input component
-│   ├── Button.tsx                  # Custom button component
-│   ├── TextInput.tsx               # Custom text input component
-│   └── LoadingSpinner.tsx          # Loading indicator
+react-native-mobile/
+├── components/                      # Reusable UI components
+│   ├── BottomTab.tsx               # Bottom navigation (4 tabs)
+│   ├── PrimaryButton.tsx           # Custom button component
+│   ├── TextField.tsx               # Custom text input component
+│   ├── ProductCard.tsx             # Product display card
+│   ├── HomepageHeader.tsx          # Search header with cart & chat
+│   ├── GreetingSection.tsx         # User greeting component
+│   ├── BannerSlider.tsx            # Promotional banner slider
+│   ├── CategorySection.tsx         # Category grid (4 columns)
+│   ├── FlashSaleSection.tsx        # Flash sale horizontal scroll
+│   ├── RecommendedSection.tsx      # Recommended products grid
+│   └── HomepageFooter.tsx          # Footer branding
+│
+├── hooks/                           # Custom React hooks
+│   ├── useAuth.ts                  # Authentication logic
+│   ├── useForm.ts                  # Form validation & state
+│   ├── useUser.ts                  # User profile management
+│   └── useHomepage.ts              # Homepage data & logic
 │
 ├── constants/                       # App constants
-│   └── theme.ts                    # Colors, fonts, sizes, spacing
+│   ├── theme.ts                    # Colors, fonts, sizes, spacing
+│   └── mockData.ts                 # Mock categories & products
 │
 ├── screens/                         # App screens
-│   ├── IntroScreen.tsx             # Loading screen (10s)
+│   ├── IntroScreen.tsx             # Loading screen with logo
 │   ├── WelcomeScreen.tsx           # Landing page with CTA buttons
 │   ├── LoginScreen.tsx             # Email/Username login form
 │   ├── RegisterScreen.tsx          # Registration form (6 fields)
-│   ├── ForgotPasswordScreen.tsx    # Forgot password - email input
-│   ├── OTPVerificationScreen.tsx   # OTP verification screen
-│   ├── ResetPasswordScreen.tsx     # New password input & confirm
-│   └── HomepageScreen.tsx          # User dashboard
+│   ├── VerifyRegisterOTPScreen.tsx # OTP verification for registration
+│   ├── ForgotPasswordScreen.tsx    # Forgot password flow
+│   ├── HomepageScreen.tsx          # Main dashboard (refactored)
+│   └── ProfileScreen.tsx           # User account settings
 │
-├── services/                        # API services
-│   └── api.ts                      # API client & HTTP methods
+├── services/                        # API & external services
+│   ├── api.ts                      # Axios client with interceptors
+│   └── RealmService.ts             # Local database (if needed)
 │
-├── types/                           # TypeScript types
+├── store/                           # State management
+│   ├── AuthProvider.tsx            # Auth context provider
+│   └── authStore.ts                # Auth state with Zustand
+│
+├── types/                           # TypeScript type definitions
 │   ├── api.ts                      # API request/response types
 │   ├── navigation.ts               # Navigation stack types
-│   └── profile.ts                  # User profile types
+│   ├── profile.ts                  # User profile types
+│   └── product.ts                  # Product & Category types
+│
+├── utils/                           # Helper functions
+│   ├── storage.ts                  # AsyncStorage wrapper
+│   ├── validation.ts               # Form validation rules
+│   └── format.ts                   # Data formatting utilities
+│
+├── navigation/                      # Navigation setup
+│   ├── AppNavigator.tsx            # Main navigation container
+│   └── index.ts                    # Navigation exports
 │
 ├── assets/                          # Static resources
 │   ├── dacsanvietLogo.webp        # Brand logo
@@ -142,19 +217,25 @@ BaiTapTuan1_TypeScript/
 │   ├── welcome.png
 │   ├── loginScreen.png
 │   ├── registerScreen.png
-│   ├── registerotp.jpg
 │   ├── inputotpregister.png
 │   ├── forgotpass.png
 │   ├── otpforgotpass.png
 │   ├── resetpass.jpg
-│   └── mailinfo.jpg
+│   ├── registerotp.jpg
+│   ├── mailinfo.jpg
+│   └── img.png
 │
-├── App.tsx                          # Main app component & navigation
+├── scripts/                         # Utility scripts
+│   └── update-ip.js                # Auto-update API IP address
+│
+├── App.tsx                          # Root component
 ├── index.ts                         # Entry point
 ├── app.json                         # Expo configuration
-├── tsconfig.json                    # TypeScript configuration
+├── babel.config.js                 # Babel configuration
+├── tailwind.config.js              # NativeWind configuration
+├── tsconfig.json                   # TypeScript configuration
 ├── package.json                     # Dependencies & scripts
-└── README.md                        # Documentation
+└── README.md                        # Project documentation
 ```
 
 ## API Integration

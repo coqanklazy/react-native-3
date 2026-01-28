@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
+    "update-ip": "node scripts/update-ip.js",
+    "prestart": "npm run update-ip",
+    "preandroid": "npm run update-ip",
+    "preios": "npm run update-ip",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -12,6 +16,8 @@
     "test-api": "node test-api-connection.js"
   },
   "dependencies": {
+    "@expo-google-fonts/karla": "^0.4.2",
+    "@expo-google-fonts/playfair-display-sc": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-navigation/native": "^7.1.28",
@@ -19,16 +25,22 @@
     "axios": "^1.7.9",
     "expo": "~54.0.31",
     "expo-status-bar": "~3.0.9",
+    "nativewind": "^2.0.11",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-network-info": "^5.2.2",
     "react-native-paper": "^5.14.5",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "realm": "^20.2.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "babel-preset-expo": "^54.0.10",
+    "react-native-dotenv": "^3.4.11",
+    "tailwindcss": "^3.3.2",
     "typescript": "~5.9.2"
   },
   "private": true
