@@ -47,16 +47,35 @@ export const validatePassword = (password: string): {
 /**
  * Validate số điện thoại Việt Nam
  * @param phoneNumber - Số điện thoại cần validate
+ * @returns Object chứa kết quả validate và message
+ */
+export const validatePhoneNumber = (phoneNumber: string): {
+  isValid: boolean;
+  message?: string;
+} => {
+  if (!phoneNumber) {
+    return { isValid: false, message: 'Số điện thoại không được để trống' };
+  }
+
+  // Vietnamese phone number format: 10 digits starting with 0
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  const phoneRegex = /^0[0-9]{9}$/;
+
+  if (!phoneRegex.test(cleaned)) {
+    return { isValid: false, message: 'Số điện thoại không hợp lệ (phải bắt đầu bằng 0, 10 chữ số)' };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Validate số điện thoại Việt Nam (old function, kept for backwards compatibility)
+ * @param phoneNumber - Số điện thoại cần validate
  * @returns true nếu số điện thoại hợp lệ
  */
 export const isValidPhoneNumber = (phoneNumber: string): boolean => {
-  if (!phoneNumber) return false;
-
-  // Vietnamese phone number format: 10 digits starting with 0
-  const phoneRegex = /^0[0-9]{9}$/;
-  const cleaned = phoneNumber.replace(/\D/g, '');
-
-  return phoneRegex.test(cleaned);
+  const result = validatePhoneNumber(phoneNumber);
+  return result.isValid;
 };
 
 /**

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { User } from "../types/api";
 import { ApiService } from "../services/api";
 import { StorageService } from "../utils/storage";
@@ -24,10 +25,8 @@ export const useHomepage = () => {
       if (!token) return;
 
       const user = await ApiService.getCurrentUser();
-      setCurrentUser(user);
-
-      // Lưu lại vào storage
-      if (user) {
+      if (user) { // Check if user is not null
+        setCurrentUser(user);
         await StorageService.updateUser(user);
       }
     } catch (error) {
@@ -35,9 +34,11 @@ export const useHomepage = () => {
     }
   };
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
 
   return {
     currentUser,

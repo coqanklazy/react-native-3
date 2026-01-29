@@ -10,6 +10,10 @@ import VerifyRegisterOTPScreen from '../screens/VerifyRegisterOTPScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import HomepageScreen from '../screens/HomepageScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import EditEmailScreen from '../screens/EditEmailScreen';
+import EditPhoneScreen from '../screens/EditPhoneScreen';
+import EditNameScreen from '../screens/EditNameScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -79,6 +83,39 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
             <ProfileScreen {...props} onLogout={onLogout} />
           )}
         </Stack.Screen>
+
+        {/* Profile Management Screens */}
+        <Stack.Screen
+          name="ChangePassword"
+          component={ChangePasswordScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="EditEmail"
+          component={EditEmailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="EditPhone"
+          component={EditPhoneScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="EditName"
+          component={EditNameScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

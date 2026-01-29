@@ -4,6 +4,7 @@ export interface User {
   email: string;
   fullName: string;
   phoneNumber?: string;
+  avatarUrl?: string;
   role: 'ADMIN' | 'STAFF' | 'USER';
   isActive: boolean;
   createdAt: string;
@@ -64,6 +65,8 @@ export interface OTPSendResponse {
   expiresIn: string;
 }
 
+export type SendOTPResponse = OTPSendResponse;
+
 export interface SendRegistrationOTPRequest {
   email: string;
   fullName?: string;
@@ -83,8 +86,77 @@ export interface PasswordResetOTPRequest {
   email: string;
 }
 
+export interface SendOTPRequest {
+  email: string;
+  fullName: string;
+  username: string;
+}
+
 export interface ResetPasswordWithOTPRequest {
   email: string;
   otpCode: string;
   newPassword: string;
 }
+
+// Profile Management Types
+export interface ProfileUpdateRequest {
+  fullName?: string;
+  phoneNumber?: string;
+}
+
+export interface AvatarUploadResponse {
+  user: User;
+  avatarUrl: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+// Email Update
+export interface SendEmailUpdateOTPRequest {
+  newEmail: string;
+}
+
+export interface VerifyEmailUpdateRequest {
+  newEmail: string;
+  otpCode: string;
+  otpToken: string;
+}
+
+// Phone Update
+export interface SendPhoneUpdateOTPRequest {
+  newPhone: string;
+}
+
+export interface VerifyPhoneUpdateRequest {
+  newPhone: string;
+  otpCode: string;
+  otpToken: string;
+}
+
+// Password Change (OTP Flow)
+export interface SendPasswordChangeOTPRequest {
+  currentPassword: string;
+}
+
+export interface VerifyPasswordChangeOTPRequest {
+  currentPassword: string;
+  newPassword: string;
+  otpCode: string;
+  otpToken: string;
+}
+
+export interface OTPSendResponse {
+  email: string;
+  expiresAt: string;
+  expiresIn: string;
+  otpToken?: string;
+}
+

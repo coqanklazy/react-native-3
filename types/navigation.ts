@@ -15,6 +15,10 @@ export type RootStackParamList = {
   Cart: undefined;
   Orders: undefined;
   Profile: undefined;
+  ChangePassword: undefined;
+  EditEmail: undefined;
+  EditPhone: undefined;
+  EditName: undefined;
 };
 
 export type NavigationProps = {
