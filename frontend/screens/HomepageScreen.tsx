@@ -67,6 +67,7 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
   };
 
   const handleCategoryPress = (category: any) => {
+    setSearchQuery("");
     // Toggle multiple category selection by ID
     if (selectedCategoryIds.includes(category.id)) {
       setSelectedCategoryIds(prev => prev.filter(id => id !== category.id));

@@ -62,12 +62,12 @@ class Product {
             query += ` LIMIT ? OFFSET ?`;
             params.push(parseInt(limit), parseInt(offset));
 
-            console.log('Product Query:', query);
-            console.log('Product Params:', params);
+            // console.log('Product Query:', query);
+            // console.log('Product Params:', params);
 
-            try {
-                require('fs').appendFileSync('backend_debug.log', `\nQuery: ${query}\nParams: ${JSON.stringify(params)}\n`);
-            } catch (e) { console.error(e); }
+            // try {
+            //     require('fs').appendFileSync('backend_debug.log', `\nQuery: ${query}\nParams: ${JSON.stringify(params)}\n`);
+            // } catch (e) { console.error(e); }
 
             const [rows] = await pool.query(query, params);
             return rows.map(Product.formatProduct);
