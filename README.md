@@ -72,11 +72,11 @@ Forgot password: Login → Quên mật khẩu → Nhập email → Nhập OTP �
 <table align="center">
   <tr>
     <td align="center">
-      <img src="screenshots/homepage-full.png" width="280" />
+      <img src="frontend/screenshots/homepage-full.png" width="280" />
       <br />
     </td>
     <td align="center">
-      <img src="screenshots/homepage-full-2.png" width="280" />
+      <img src="frontend/screenshots/homepage-full-2.png" width="280" />
       <br />
     </td>
   </tr>
@@ -88,58 +88,58 @@ Forgot password: Login → Quên mật khẩu → Nhập email → Nhập OTP �
 <table>
   <tr>
     <td align="center">
-      <img src="screenshots/loadingScreen.png" width="280"/><br/>
+      <img src="frontend/screenshots/loadingScreen.png" width="280"/><br/>
       <em>Màn hình loading</em>
     </td>
     <td align="center">
-      <img src="screenshots/image.png" width="280"/><br/>
+      <img src="frontend/screenshots/image.png" width="280"/><br/>
       <em>Màn hình giới thiệu cá nhân</em>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="screenshots/welcome.png" width="280"/><br/>
+      <img src="frontend/screenshots/welcome.png" width="280"/><br/>
       <em>Màn hình Welcome</em>
     </td>
     <td align="center">
-      <img src="screenshots/loginScreen.png" width="280"/><br/>
+      <img src="frontend/screenshots/loginScreen.png" width="280"/><br/>
       <em>Giao diện trang đăng nhập đơn giản</em>
     </td>
     <td align="center">
-      <img src="screenshots/registerScreen.png" width="280"/><br/>
+      <img src="frontend/screenshots/registerScreen.png" width="280"/><br/>
       <em>Giao diện trang đăng ký đơn giản</em>
     </td>
   </tr>
     <tr>
     <td align="center">
-      <img src="screenshots/forgotpass.png" width="280" />
+      <img src="frontend/screenshots/forgotpass.png" width="280" />
       <br />
       <em>Giao diện quên mật khẩu</em>
     </td>
     <td align="center">
-      <img src="screenshots/otpforgotpass.png" width="280" />
+      <img src="frontend/screenshots/otpforgotpass.png" width="280" />
       <br />
       <em>Giao diện trang nhập mã OTP</em>
     </td>
     <td align="center">
-      <img src="screenshots/resetpass.jpg" width="280" />
+      <img src="frontend/screenshots/resetpass.jpg" width="280" />
       <br />
       <em>Giao diện Email gửi mã xác thực khi quên mật khẩu</em>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="screenshots/inputotpregister.png" width="280" />
+      <img src="frontend/screenshots/inputotpregister.png" width="280" />
       <br />
       <em>Giao diện nhập mã OTP khi đăng kí</em>
     </td>
 <td align="center">
-      <img src="screenshots/registerotp.jpg" width="280" />
+      <img src="frontend/screenshots/registerotp.jpg" width="280" />
       <br />
       <em>Giao diện Email gửi mã xác thực đăng kí</em>
     </td>
 <td align="center">
-      <img src="screenshots/mailinfo.jpg" width="280" />
+      <img src="frontend/screenshots/mailinfo.jpg" width="280" />
       <br />
       <em>Giao diện Email khi đăng kí thành công</em>
     </td>
