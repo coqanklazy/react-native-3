@@ -14,6 +14,7 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import EditEmailScreen from '../screens/EditEmailScreen';
 import EditPhoneScreen from '../screens/EditPhoneScreen';
 import EditNameScreen from '../screens/EditNameScreen';
+import ProductDetailScreen from '../screens/ProductDetailScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -115,6 +116,12 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
           options={{
             headerShown: false,
           }}
+        />
+
+        <Stack.Screen
+          name="ProductDetail"
+          component={ProductDetailScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

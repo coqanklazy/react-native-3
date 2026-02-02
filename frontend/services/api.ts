@@ -22,6 +22,10 @@ import {
   OTPVerifyResponse,
   OTPSendResponse,
   VerifyPasswordChangeOTPRequest,
+  ProductFilter,
+  ProductListResponse,
+  CategoryResponse,
+  Product,
 } from '../types/api';
 
 // Đọc biến môi trường theo chuẩn Expo (EXPO_PUBLIC_*)
@@ -282,6 +286,34 @@ export class ApiService {
       await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
     } catch (error) {
       console.log('Logout error:', error);
+    }
+  }
+
+  // Product APIs
+  static async getProducts(filter?: ProductFilter): Promise<ProductListResponse> {
+    try {
+      const response = await apiClient.get<ProductListResponse>('/products', { params: filter });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải danh sách sản phẩm.', data: [], pagination: { page: 1, limit: 10, totalItems: 0, totalPages: 0 } };
+    }
+  }
+
+  static async getProductById(id: number): Promise<ApiResponse<Product>> {
+    try {
+      const response = await apiClient.get<ApiResponse<Product>>(`/products/${id}`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải thông tin sản phẩm.' };
+    }
+  }
+
+  static async getCategories(): Promise<CategoryResponse> {
+    try {
+      const response = await apiClient.get<CategoryResponse>('/products/categories');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải danh mục.', data: [] };
     }
   }
 }

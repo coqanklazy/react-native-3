@@ -1,13 +1,16 @@
 import React from "react";
 import { View, ScrollView, Text, TouchableOpacity } from "react-native";
-import { Product } from "../types/product";
+import { Product } from "../types/api";
 import ProductCard from "./ProductCard";
 
 interface FlashSaleSectionProps {
   products: Product[];
+  onProductPress?: (product: Product) => void;
 }
 
-const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
+const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products, onProductPress }) => {
+  if (!products || products.length === 0) return null;
+
   return (
     <View className="bg-white mb-2 py-3">
       <View className="flex-row justify-between items-center px-4 mb-3">
@@ -30,7 +33,12 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
         contentContainerStyle={{ paddingHorizontal: 16 }}
       >
         {products.map((item) => (
-          <ProductCard key={item.id} item={item} isGrid={false} />
+          <ProductCard
+            key={item.id}
+            item={item}
+            isGrid={false}
+            onPress={() => onProductPress && onProductPress(item)}
+          />
         ))}
       </ScrollView>
     </View>

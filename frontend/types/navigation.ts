@@ -19,6 +19,7 @@ export type RootStackParamList = {
   EditEmail: undefined;
   EditPhone: undefined;
   EditName: undefined;
+  ProductDetail: { productId: number };
 };
 
 export type NavigationProps = {

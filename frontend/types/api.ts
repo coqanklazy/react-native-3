@@ -59,11 +59,7 @@ export interface TokenPair {
   expiresIn: string;
 }
 
-export interface OTPSendResponse {
-  email: string;
-  expiresAt: string;
-  expiresIn: string;
-}
+
 
 export type SendOTPResponse = OTPSendResponse;
 
@@ -158,5 +154,58 @@ export interface OTPSendResponse {
   expiresAt: string;
   expiresIn: string;
   otpToken?: string;
+}
+
+export interface OTPVerifyResponse {
+  user: User;
+  message?: string;
+}
+
+// Product Types
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  category: string;
+  imageUrl: string;
+  rating: number;
+  soldCount: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ProductFilter {
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  category?: string;
+  sort?: 'price_asc' | 'price_desc' | 'newest';
+  page?: number;
+  limit?: number;
+}
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface ProductListResponse {
+  success: boolean;
+  data: Product[];
+  pagination: Pagination;
+}
+
+export interface CategoryItem {
+  id: number;
+  name: string;
+}
+
+export interface CategoryResponse {
+  success: boolean;
+  data: CategoryItem[];
 }
 

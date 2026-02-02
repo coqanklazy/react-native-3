@@ -1,14 +1,16 @@
 import React from "react";
 import { View, TouchableOpacity, Text } from "react-native";
-import { Product } from "../types/product";
+import { Product } from "../types/api";
 import ProductCard from "./ProductCard";
 
 interface RecommendedSectionProps {
   products: Product[];
+  onProductPress?: (product: Product) => void;
 }
 
 const RecommendedSection: React.FC<RecommendedSectionProps> = ({
   products,
+  onProductPress,
 }) => {
   return (
     <View className="px-2">
@@ -21,23 +23,15 @@ const RecommendedSection: React.FC<RecommendedSectionProps> = ({
       <View className="flex-row flex-wrap justify-between mt-2">
         {products.map((item) => (
           <View className="w-[49%]" key={item.id}>
-            <ProductCard item={item} isGrid={true} />
-          </View>
-        ))}
-        {/* Duplicate for demo */}
-        {products.map((item) => (
-          <View className="w-[49%]" key={`copy-${item.id}`}>
             <ProductCard
-              item={{ ...item, id: `copy-${item.id}` }}
+              item={item}
               isGrid={true}
+              onPress={() => onProductPress && onProductPress(item)}
             />
           </View>
         ))}
       </View>
 
-      <TouchableOpacity className="bg-white py-3 mt-2 rounded-lg items-center border border-gray-200">
-        <Text className="text-gray-500">Xem thêm</Text>
-      </TouchableOpacity>
     </View>
   );
 };
