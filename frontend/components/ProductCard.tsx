@@ -63,12 +63,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {item.name}
         </Text>
 
-        <View className="flex-row items-center justify-between mb-1">
-          <Text className="text-red-500 font-bold text-base">
-            {formatPrice(item.price)}
-          </Text>
+        <View className="flex-row items-end justify-between mb-1">
+          <View>
+            {item.originalPrice && item.originalPrice > item.price && (
+              <Text className="text-xs text-gray-400 line-through">
+                {formatPrice(item.originalPrice)}
+              </Text>
+            )}
+            <Text className="text-red-500 font-bold text-base">
+              {formatPrice(item.price)}
+            </Text>
+          </View>
           {(isGrid || showSold) && (
-            <Text className="text-[10px] text-gray-400">
+            <Text className="text-[10px] text-gray-400 mb-1">
               Đã bán {item.soldCount}
             </Text>
           )}

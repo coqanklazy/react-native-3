@@ -94,7 +94,7 @@ const ProductDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                         <Text className="text-[#DC2626] text-xl font-bold mr-2">
                             {product.price.toLocaleString('vi-VN')} đ
                         </Text>
-                        {product.originalPrice && (
+                        {product.originalPrice && product.originalPrice > product.price && (
                             <Text className="text-gray-400 line-through text-sm">
                                 {product.originalPrice.toLocaleString('vi-VN')} đ
                             </Text>
