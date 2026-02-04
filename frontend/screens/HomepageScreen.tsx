@@ -18,6 +18,7 @@ import GreetingSection from "../components/GreetingSection";
 import CategorySection from "../components/CategorySection";
 import BestSellerSection from "../components/BestSellerSection"; // Added
 import ProductCard from "../components/ProductCard"; // Added
+import PromoBanner from "../components/PromoBanner";
 import { Product } from "../types/api"; // Updated import
 
 interface HomepageScreenProps extends NavigationProps {
@@ -90,13 +91,7 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
       />
 
       {/* 🖼 ADVERTISEMENT BANNER */}
-      <View className="px-4 py-2 mb-2">
-        <Image
-          source={{ uri: "https://t4.ftcdn.net/jpg/03/20/46/13/360_F_320461388_5Snqf6f2tGjKGAv6Wrmcaz2r5AWc7M09.jpg" }}
-          className="w-full h-36 rounded-xl"
-          resizeMode="cover"
-        />
-      </View>
+      <PromoBanner onPress={() => Alert.alert("Siêu Giảm Giá", "Khám phá các ưu đãi giảm tới 50% ngay hôm nay!")} />
 
       {selectedCategoryIds.length > 0 && (
         <View className="px-4 py-2 flex-row flex-wrap items-center">
