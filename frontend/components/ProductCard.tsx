@@ -7,12 +7,14 @@ interface ProductCardProps {
   item: Product;
   isGrid?: boolean;
   onPress?: () => void;
+  showSold?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
   item,
   isGrid = true,
   onPress,
+  showSold = false,
 }) => {
   // Format price
   const formatPrice = (price: number) => {
@@ -65,7 +67,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <Text className="text-red-500 font-bold text-base">
             {formatPrice(item.price)}
           </Text>
-          {isGrid && (
+          {(isGrid || showSold) && (
             <Text className="text-[10px] text-gray-400">
               Đã bán {item.soldCount}
             </Text>

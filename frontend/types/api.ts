@@ -184,6 +184,7 @@ export interface ProductFilter {
   sort?: 'price_asc' | 'price_desc' | 'newest';
   page?: number;
   limit?: number;
+  offset?: number;
 }
 
 export interface Pagination {

@@ -86,61 +86,19 @@ const CategorySection: React.FC<CategorySectionProps> = ({
   };
 
   return (
-    <View className="bg-white p-4 mb-2">
-      <View className="flex-row flex-wrap justify-between">
-        {visibleCategories.map((item) => (
-          <View key={item.id} style={{ width: width / 4 - 10 }} className="mb-4">
+    <View className="bg-white py-4 mb-2">
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={categories}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        renderItem={({ item }) => (
+          <View style={{ width: width / 4 - 10, marginRight: 10 }}>
             {renderCategoryItem({ item })}
           </View>
-        ))}
-
-        {shouldShowMore && (
-          <TouchableOpacity
-            style={{ width: width / 4 - 10 }}
-            className="items-center mb-4"
-            onPress={() => setModalVisible(true)}
-          >
-            <View className="w-12 h-12 rounded-2xl items-center justify-center mb-2 bg-gray-100 shadow-sm">
-              <Ionicons name="grid-outline" size={20} color="#666" />
-            </View>
-            <Text className="text-xs text-gray-700 text-center font-medium">
-              Xem thêm
-            </Text>
-          </TouchableOpacity>
         )}
-      </View>
-
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="px-4 py-3 border-b border-gray-100 flex-row items-center justify-between">
-            <Text className="text-lg font-bold text-gray-800">Tất cả danh mục</Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)} className="p-2">
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
-          <FlatList
-            data={categories}
-            renderItem={renderModalItem}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={{ padding: 16 }}
-          />
-
-          <View className="p-4 border-t border-gray-100">
-            <TouchableOpacity
-              className="bg-red-600 py-3 rounded-lg items-center"
-              onPress={() => setModalVisible(false)}
-            >
-              <Text className="text-white font-bold">Xong</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      />
     </View>
   );
 };

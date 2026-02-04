@@ -10,8 +10,8 @@ export const useHomepage = () => {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
-  const [flashSaleProducts, setFlashSaleProducts] = useState<Product[]>([]);
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
+  const [discountedProducts, setDiscountedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -47,11 +47,12 @@ export const useHomepage = () => {
   };
 
   const fetchCategories = async () => {
-    const res = await ApiService.getCategories();
-    if (res.success) {
+    const res = await ApiService.getCategoriesWithProducts();
+    if (res.success && res.data) {
       const mappedCategories = res.data.map((cat: any, index: number) => ({
-        id: cat.id.toString(),
+        id: cat.id,
         name: cat.name,
+        productCount: cat.productCount,
         icon: getCategoryIcon(cat.name),
         color: getCategoryColor(index)
       }));
@@ -74,46 +75,68 @@ export const useHomepage = () => {
     return colors[index % colors.length];
   };
 
-  const fetchFlashSale = async () => {
-    const categoryParam = selectedCategoryIds.length > 0 ? selectedCategoryIds.join(',') : undefined;
-    const res = await ApiService.getProducts({
-      q: searchQuery,
-      category: categoryParam,
-      sort: 'price_asc',
-      limit: 10
-    });
-    if (res.success) {
-      setFlashSaleProducts(res.data);
+  const fetchBestSellers = async () => {
+    const res = await ApiService.getBestSellers(10);
+    if (res.success && res.data) {
+      setBestSellerProducts(res.data);
     }
   };
 
-  const fetchRecommended = async (isLoadMore = false) => {
+  const fetchDiscountedProducts = async (isLoadMore = false) => {
+    // Prevent loading if already loading
+    if (loading) return;
+    // Prevent loading more if no more items
     if (isLoadMore && !hasMore) return;
 
     setLoading(true);
     try {
-      const categoryParam = selectedCategoryIds.length > 0 ? selectedCategoryIds.join(',') : undefined;
-      const currentPage = isLoadMore ? page + 1 : 1;
-      const limit = 6;
+      const limit = 20;
+      const currentOffset = isLoadMore ? discountedProducts.length : 0;
 
-      const res = await ApiService.getProducts({
-        q: searchQuery,
-        category: categoryParam,
-        limit: limit,
-        page: currentPage
-      });
+      const isFiltering = selectedCategoryIds.length > 0 || searchQuery.length > 0;
 
-      if (res.success) {
+      // If default view (no filter) and trying to load more, checking if we already reached our "display limit" isn't strictly necessary if we just load 20 once.
+      // But to be safe if we want exactly 20 max:
+      if (!isFiltering && currentOffset >= 20) {
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+
+      let res;
+
+      if (isFiltering) {
+        res = await ApiService.getProducts({
+          q: searchQuery,
+          category: selectedCategoryIds.join(','),
+          limit,
+          offset: currentOffset,
+          sort: 'newest'
+        });
+      } else {
+        res = await ApiService.getDiscountedProducts(limit, currentOffset);
+      }
+
+      if (res.success && res.data) {
         if (isLoadMore) {
-          setRecommendedProducts(prev => [...prev, ...res.data]);
+          setDiscountedProducts(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newItems = res.data!.filter(p => !existingIds.has(p.id));
+            return [...prev, ...newItems];
+          });
         } else {
-          setRecommendedProducts(res.data);
+          setDiscountedProducts(res.data);
         }
 
-        setPage(currentPage);
-
-        const currentTotal = isLoadMore ? recommendedProducts.length + res.data.length : res.data.length;
-        setHasMore(currentTotal < res.pagination.totalItems);
+        // Logic for hasMore:
+        // 1. If filtering, use standard pagination logic (more available if returned == limit)
+        // 2. If default view, we only want 20 max. Since we asked for 20, we stop here.
+        if (isFiltering) {
+          setHasMore(res.data.length === limit);
+        } else {
+          // For default view, we loaded 20 (or less). We stop.
+          setHasMore(false);
+        }
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -122,27 +145,29 @@ export const useHomepage = () => {
     }
   };
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      setHasMore(true);
-      fetchRecommended(false);
-      fetchFlashSale();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedCategoryIds]);
-
+  // Initial load
   useFocusEffect(
     useCallback(() => {
       loadUserData();
       fetchCategories();
-      fetchFlashSale();
+      fetchBestSellers();
     }, [])
   );
 
+  // Handle Filter Changes
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+    // Debounce could be added here for search, but for now direct call
+    const timer = setTimeout(() => {
+      fetchDiscountedProducts(false);
+    }, 500); // Small delay for typing
+
+    return () => clearTimeout(timer);
+  }, [selectedCategoryIds, searchQuery]);
+
   const loadMore = () => {
-    fetchRecommended(true);
+    fetchDiscountedProducts(true);
   };
 
   return {
@@ -152,10 +177,10 @@ export const useHomepage = () => {
     selectedCategoryIds,
     setSelectedCategoryIds,
     categories,
-    flashSaleProducts,
-    recommendedProducts,
+    bestSellerProducts,
+    discountedProducts,
     loading,
-    refreshData: () => fetchRecommended(false),
+    refreshData: () => fetchDiscountedProducts(false),
     loadMore,
     hasMore,
     getCategoryName

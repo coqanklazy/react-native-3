@@ -316,4 +316,31 @@ export class ApiService {
       return error.response?.data || { success: false, message: 'Lỗi tải danh mục.', data: [] };
     }
   }
+
+  static async getCategoriesWithProducts(): Promise<ApiResponse<{ id: number, name: string, productCount: number }[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ id: number, name: string, productCount: number }[]>>('/products/categories-with-products');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải danh mục.', data: [] };
+    }
+  }
+
+  static async getBestSellers(limit: number = 10): Promise<ApiResponse<Product[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<Product[]>>('/products/bestsellers', { params: { limit } });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải sản phẩm bán chạy.', data: [] };
+    }
+  }
+
+  static async getDiscountedProducts(limit: number = 20, offset: number = 0): Promise<ApiResponse<Product[]> & { pagination?: any }> {
+    try {
+      const response = await apiClient.get<ApiResponse<Product[]> & { pagination?: any }>('/products/discounted', { params: { limit, offset } });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải sản phẩm giảm giá.', data: [] };
+    }
+  }
 }
