@@ -28,8 +28,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const getImageUrl = (url: string) => {
     if (!url) return 'https://via.placeholder.com/300?text=No+Image';
     if (url.startsWith('http')) return url;
-    // Assuming relative path from backend public folder or similar, but for now just return placeholder if not http
-    // Or if you have a BASE_URL for images: return `${BASE_URL}${url}`;
     return url;
   };
 

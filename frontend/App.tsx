@@ -10,11 +10,15 @@ import { RootStackParamList } from './types/navigation';
 import AppNavigator from './navigation/AppNavigator';
 import { RealmService } from './services/RealmService';
 import { STORAGE_KEYS } from './services/api';
+import { AuthProvider } from './store/AuthProvider';
+import { useAuth } from './hooks/useAuth';
 
-export default function App(): React.JSX.Element {
+// Inner component that has access to AuthContext
+function AppInner() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const { login: authLogin, logout: authLogout } = useAuth();
 
   const [karlaLoaded] = useKarla({ Karla_400Regular, Karla_600SemiBold });
   const [playfairLoaded] = usePlayfair({ PlayfairDisplaySC_700Bold });
@@ -34,6 +38,9 @@ export default function App(): React.JSX.Element {
       // If both token and user data exist, user is still logged in
       if (token && userData) {
         setIsLoggedIn(true);
+        // Sync with AuthProvider
+        const user = JSON.parse(userData);
+        authLogin(user);
       } else {
         // No valid session, user needs to log in
         setIsLoggedIn(false);
@@ -54,8 +61,18 @@ export default function App(): React.JSX.Element {
     );
   }
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
     setIsLoggedIn(true);
+    // Read user from AsyncStorage (saved by ApiService.login) and sync with AuthProvider
+    try {
+      const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
+      if (userData) {
+        const user = JSON.parse(userData);
+        authLogin(user);
+      }
+    } catch (e) {
+      console.log('Error reading user after login:', e);
+    }
     // Reset navigation stack to clear auth screen history
     setTimeout(() => {
       navigationRef.current?.reset({
@@ -69,20 +86,15 @@ export default function App(): React.JSX.Element {
     try {
       // Clear user data using RealmService
       await RealmService.clearUserData();
-
-      // Clear all auth tokens from AsyncStorage
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.SESSION_ID,
-        STORAGE_KEYS.ACCESS_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
-      ]);
     } catch (error) {
-      console.log('Error clearing tokens:', error);
+      console.log('Error clearing realm data:', error);
     }
 
+    // Use AuthProvider logout (clears session tokens)
+    await authLogout();
     setIsLoggedIn(false);
 
-    // Reset navigation stack to Login screen (not Intro to avoid 10s loading)
+    // Reset navigation stack to Login screen
     setTimeout(() => {
       navigationRef.current?.reset({
         index: 0,
@@ -102,5 +114,14 @@ export default function App(): React.JSX.Element {
         onLogout={handleLogout}
       />
     </>
+  );
+}
+
+// Main App wraps AppInner in AuthProvider so useAuth() works everywhere
+export default function App(): React.JSX.Element {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }

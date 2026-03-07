@@ -27,13 +27,9 @@ export const initialAuthState: AuthState = {
 
 export const AuthContext = createContext<AuthContextValue>({
   ...initialAuthState,
-  login: () => {},
-  logout: () => {},
-  updateUser: () => {},
-  setLoading: () => {},
+  login: () => { },
+  logout: () => { },
+  updateUser: () => { },
+  setLoading: () => { },
 });
-
-// Export AuthProvider
-export { AuthProvider } from './AuthProvider';
-
 

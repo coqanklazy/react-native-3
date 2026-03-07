@@ -188,6 +188,25 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
         {/* Settings Menu */}
         <View className="bg-white rounded-lg shadow-sm overflow-hidden mb-4">
+          {/* Order History */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate("Orders" as never)}
+            className="flex-row items-center p-4 border-b border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-lg bg-orange-100 items-center justify-center">
+              <Ionicons name="receipt" size={20} color="#F97316" />
+            </View>
+            <View className="flex-1 ml-4">
+              <Text className="text-base font-semibold text-gray-800">
+                Lịch sử mua hàng
+              </Text>
+              <Text className="text-xs text-gray-500 mt-1">
+                Quản lý và theo dõi đơn hàng
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
           {/* Edit Basic Info */}
           {/* Edit Basic Info */}
           <TouchableOpacity

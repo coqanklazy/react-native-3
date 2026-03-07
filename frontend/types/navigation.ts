@@ -14,12 +14,14 @@ export type RootStackParamList = {
   Homepage: undefined;
   Cart: undefined;
   Orders: undefined;
+  OrderDetail: { orderId: string };
   Profile: undefined;
   ChangePassword: undefined;
   EditEmail: undefined;
   EditPhone: undefined;
   EditName: undefined;
   ProductDetail: { productId: number };
+  Checkout: { fromQuickBuy?: boolean };
 };
 
 export type NavigationProps = {
@@ -27,7 +29,7 @@ export type NavigationProps = {
     replace: (screen: keyof RootStackParamList) => void;
     navigate: <K extends keyof RootStackParamList>(
       screen: K,
-      params?: RootStackParamList[K]
+      params?: RootStackParamList[K],
     ) => void;
     goBack: () => void;
     canGoBack: () => boolean;

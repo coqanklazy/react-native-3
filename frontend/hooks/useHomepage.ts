@@ -95,14 +95,6 @@ export const useHomepage = () => {
 
       const isFiltering = selectedCategoryIds.length > 0 || searchQuery.length > 0;
 
-      // If default view (no filter) and trying to load more, checking if we already reached our "display limit" isn't strictly necessary if we just load 20 once.
-      // But to be safe if we want exactly 20 max:
-      if (!isFiltering && currentOffset >= 20) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-
       let res;
 
       if (isFiltering) {
@@ -128,15 +120,10 @@ export const useHomepage = () => {
           setDiscountedProducts(res.data);
         }
 
-        // Logic for hasMore:
-        // 1. If filtering, use standard pagination logic (more available if returned == limit)
-        // 2. If default view, we only want 20 max. Since we asked for 20, we stop here.
-        if (isFiltering) {
-          setHasMore(res.data.length === limit);
-        } else {
-          // For default view, we loaded 20 (or less). We stop.
-          setHasMore(false);
-        }
+        // Keep loading if there are more. (if res.data.length < limit, no more pages)
+        setHasMore(res.data.length === limit);
+      } else {
+        setHasMore(false);
       }
     } catch (error) {
       console.error("Error fetching products:", error);

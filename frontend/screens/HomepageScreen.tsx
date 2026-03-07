@@ -1,7 +1,7 @@
-﻿import React, { useEffect } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   View,
-  FlatList, // Changed from ScrollView
+  FlatList,
   StatusBar,
   Alert,
   BackHandler,
@@ -16,10 +16,12 @@ import BottomTab from "../components/BottomTab";
 import HomepageHeader from "../components/HomepageHeader";
 import GreetingSection from "../components/GreetingSection";
 import CategorySection from "../components/CategorySection";
-import BestSellerSection from "../components/BestSellerSection"; // Added
-import ProductCard from "../components/ProductCard"; // Added
+import BestSellerSection from "../components/BestSellerSection";
+import ProductCard from "../components/ProductCard";
 import PromoBanner from "../components/PromoBanner";
-import { Product } from "../types/api"; // Updated import
+import { Product } from "../types/api";
+import { useCartStore } from "../store/cartStore";
+import { useAuth } from "../hooks/useAuth";
 
 interface HomepageScreenProps extends NavigationProps {
   onLogout?: () => void;
@@ -44,6 +46,12 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
     getCategoryName
   } = useHomepage();
 
+  const { currentUser: authUser } = useAuth();
+  const userId = authUser?.id?.toString() || 'guest';
+
+  const { addToCart, clearSelectedCart, toggleItemSelection } = useCartStore();
+  const cartCount = useCartStore((state) => state.getTotalItems(userId));
+
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
@@ -67,7 +75,6 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
 
   const handleCategoryPress = (category: any) => {
     setSearchQuery("");
-    // Toggle multiple category selection by ID
     if (selectedCategoryIds.includes(category.id)) {
       setSelectedCategoryIds(prev => prev.filter(id => id !== category.id));
     } else {
@@ -83,14 +90,12 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
     <>
       <GreetingSection user={currentUser} />
 
-      {/* 🧩 CATEGORIES (Horizontal) */}
       <CategorySection
         categories={categories}
         onCategoryPress={handleCategoryPress}
         selectedCategoryIds={selectedCategoryIds}
       />
 
-      {/* 🖼 ADVERTISEMENT BANNER */}
       <PromoBanner onPress={() => Alert.alert("Siêu Giảm Giá", "Khám phá các ưu đãi giảm tới 50% ngay hôm nay!")} />
 
       {selectedCategoryIds.length > 0 && (
@@ -108,7 +113,6 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
         </View>
       )}
 
-      {/* 🏆 BEST SELLERS (Horizontal) */}
       {bestSellerProducts && bestSellerProducts.length > 0 && (
         <BestSellerSection
           products={bestSellerProducts}
@@ -116,7 +120,6 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
         />
       )}
 
-      {/* Main List Title */}
       <View className="px-2 mt-2 bg-white pt-3 rounded-t-lg mx-2 border-b-2 border-red-500 self-center w-full items-center">
         <Text className="text-red-500 font-bold uppercase text-sm mb-2">
           Sản phẩm giảm giá
@@ -139,11 +142,11 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
     <View className="flex-1 bg-gray-50">
       <StatusBar barStyle="light-content" backgroundColor="#DC2626" />
 
-      {/* 🔴 HEADER (Sticky) */}
       <HomepageHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        cartCount={3}
+        cartCount={cartCount}
+        onCartPress={() => navigation.navigate("Cart")}
       />
 
       <FlatList
@@ -166,7 +169,6 @@ const HomepageScreen: React.FC<HomepageScreenProps> = ({
         showsVerticalScrollIndicator={false}
       />
 
-      {/* 🔽 BOTTOM NAVIGATION */}
       <BottomTab />
     </View>
   );

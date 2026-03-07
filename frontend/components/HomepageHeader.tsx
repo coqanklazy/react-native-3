@@ -6,12 +6,14 @@ interface HomepageHeaderProps {
   searchQuery: string;
   onSearchChange: (text: string) => void;
   cartCount?: number;
+  onCartPress?: () => void;
 }
 
 const HomepageHeader: React.FC<HomepageHeaderProps> = ({
   searchQuery,
   onSearchChange,
-  cartCount = 3,
+  cartCount = 0,
+  onCartPress,
 }) => {
   return (
     <View className="bg-red-600 pt-12 pb-3 px-4 z-50">
@@ -32,13 +34,15 @@ const HomepageHeader: React.FC<HomepageHeaderProps> = ({
         </View>
 
         {/* Icons */}
-        <TouchableOpacity className="relative">
+        <TouchableOpacity className="relative" onPress={onCartPress}>
           <Ionicons name="cart-outline" size={26} color="white" />
-          <View className="absolute -top-1 -right-1 bg-yellow-400 w-4 h-4 rounded-full items-center justify-center border border-red-600">
-            <Text className="text-[10px] font-bold text-red-600">
-              {cartCount}
-            </Text>
-          </View>
+          {cartCount > 0 && (
+            <View className="absolute -top-1 -right-1 bg-yellow-400 w-4 h-4 rounded-full items-center justify-center border border-red-600">
+              <Text className="text-[10px] font-bold text-red-600">
+                {cartCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity>

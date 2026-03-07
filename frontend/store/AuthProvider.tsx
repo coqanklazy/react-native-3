@@ -56,7 +56,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
-    await StorageService.clearAll();
+    // Only clear session data (tokens, user info), keep cart data per-user
+    await StorageService.clearSession();
     setAuthState({
       isLoggedIn: false,
       isLoading: false,

@@ -15,6 +15,10 @@ import EditEmailScreen from '../screens/EditEmailScreen';
 import EditPhoneScreen from '../screens/EditPhoneScreen';
 import EditNameScreen from '../screens/EditNameScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
+import CartScreen from '../screens/CartScreen';
+import CheckoutScreen from '../screens/CheckoutScreen';
+import OrdersScreen from '../screens/OrdersScreen';
+import OrderDetailScreen from '../screens/OrderDetailScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -121,6 +125,30 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
         <Stack.Screen
           name="ProductDetail"
           component={ProductDetailScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Cart"
+          component={CartScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Checkout"
+          component={CheckoutScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Orders"
+          component={OrdersScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="OrderDetail"
+          component={OrderDetailScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

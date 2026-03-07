@@ -19,7 +19,7 @@
     "@expo-google-fonts/karla": "^0.4.2",
     "@expo-google-fonts/playfair-display-sc": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
-    "@react-native-async-storage/async-storage": "^2.1.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/stack": "^7.6.16",
     "axios": "^1.7.9",
@@ -35,7 +35,8 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-web": "^0.21.0",
-    "realm": "^20.2.0"
+    "realm": "^20.2.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

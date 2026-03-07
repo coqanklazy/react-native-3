@@ -1,3 +1,11 @@
 .env
 .env*.local
 .idea/
+.agent/
+.gitattributes
+ERRORS.md
+GEMINI.md
+package.json
+README.md
+.editorconfig
+docs/

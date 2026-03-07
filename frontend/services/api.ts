@@ -26,6 +26,9 @@ import {
   ProductListResponse,
   CategoryResponse,
   Product,
+  CreateOrderRequest,
+  OrdersResponse,
+  Order
 } from '../types/api';
 
 // Đọc biến môi trường theo chuẩn Expo (EXPO_PUBLIC_*)
@@ -341,6 +344,34 @@ export class ApiService {
       return response.data;
     } catch (error: any) {
       return error.response?.data || { success: false, message: 'Lỗi tải sản phẩm giảm giá.', data: [] };
+    }
+  }
+
+  // Order APIs
+  static async createOrder(data: CreateOrderRequest): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>('/orders', data);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tạo đơn hàng.' };
+    }
+  }
+
+  static async getUserOrders(page: number = 1, limit: number = 20, status?: string): Promise<OrdersResponse> {
+    try {
+      const response = await apiClient.get<OrdersResponse>('/orders', { params: { page, limit, status } });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải đơn hàng.', data: [], pagination: { page, limit, totalItems: 0, totalPages: 0 } };
+    }
+  }
+
+  static async cancelOrder(orderId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(`/orders/${orderId}/cancel`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi hủy đơn hàng.' };
     }
   }
 }

@@ -210,3 +210,57 @@ export interface CategoryResponse {
   data: CategoryItem[];
 }
 
+export interface OrderItemRequest {
+  productId: number;
+  productName: string;
+  price: number;
+  quantity: number;
+  productImage?: string;
+}
+
+export interface ShippingAddress {
+  fullName: string;
+  phoneNumber: string;
+  address: string;
+  ward: string;
+  district: string;
+  city: string;
+}
+
+export interface CreateOrderRequest {
+  items: OrderItemRequest[];
+  shippingAddress: ShippingAddress;
+  paymentMethod: 'COD' | 'E_WALLET' | 'BANK_TRANSFER';
+}
+
+export interface OrderItem {
+  id: number;
+  productId: number;
+  productName: string;
+  productImage: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  userId: number;
+  items: OrderItem[];
+  totalAmount: number;
+  shippingAddress: ShippingAddress & { note?: string };
+  paymentMethod: string;
+  status: 'NEW' | 'CONFIRMED' | 'PREPARING' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'CANCEL_REQUESTED';
+  createdAt: string;
+  confirmedAt?: string | null;
+  cancelledAt?: string | null;
+  deliveredAt?: string | null;
+  cancelDeadline?: string | null;
+  canCancel: boolean;
+}
+
+export interface OrdersResponse {
+  success: boolean;
+  message: string;
+  data: Order[];
+  pagination: Pagination;
+}

@@ -40,11 +40,11 @@ class Product {
 
             // Filter by category
             if (category && category !== 'All') {
-                const cats = category.split(',').map(c => c.trim()).filter(c => c);
-                if (cats.length > 0) {
-                    const placeholders = cats.map(() => '?').join(',');
+                const ids = category.split(',').map(id => id.trim()).filter(id => id);
+                if (ids.length > 0) {
+                    const placeholders = ids.map(() => '?').join(',');
                     query += ` AND p.category_id IN (${placeholders})`;
-                    params.push(...cats);
+                    params.push(...ids);
                 }
             }
 
