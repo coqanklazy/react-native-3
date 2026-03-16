@@ -28,7 +28,14 @@ import {
   Product,
   CreateOrderRequest,
   OrdersResponse,
-  Order
+  Order,
+  CreateReviewRequest,
+  CreateReviewResponse,
+  Review,
+  ReviewStats,
+  PendingReviewItem,
+  OrderReviewStatus,
+  ProductComment,
 } from '../types/api';
 
 // Đọc biến môi trường theo chuẩn Expo (EXPO_PUBLIC_*)
@@ -347,6 +354,78 @@ export class ApiService {
     }
   }
 
+  static async getProductComments(productId: number): Promise<ApiResponse<ProductComment[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<ProductComment[]>>(`/products/${productId}/comments`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi khi tải bình luận.' };
+    }
+  }
+
+  static async addProductComment(productId: number, content: string, parentId?: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(`/products/${productId}/comments`, { content, parentId });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi khi đăng bình luận.' };
+    }
+  }
+
+  static async getSimilarProducts(productId: number, limit: number = 6): Promise<ApiResponse<Product[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<Product[]>>(`/products/${productId}/similar`, { params: { limit } });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải sản phẩm tương tự.', data: [] };
+    }
+  }
+
+  static async trackProductView(productId: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(`/products/${productId}/view`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false };
+    }
+  }
+
+  static async toggleFavorite(productId: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(`/favorites/${productId}`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi thao tác yêu thích.' };
+    }
+  }
+
+  static async getFavorites(): Promise<ApiResponse<Product[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<Product[]>>('/favorites');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải danh sách yêu thích.', data: [] };
+    }
+  }
+
+  static async checkFavoriteStatus(productId: number): Promise<ApiResponse<{ isLiked: boolean }>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ isLiked: boolean }>>(`/favorites/${productId}/status`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, data: { isLiked: false } };
+    }
+  }
+
+  static async getRecentlyViewed(limit: number = 10): Promise<ApiResponse<Product[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<Product[]>>('/products/recently-viewed', { params: { limit } });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải sản phẩm đã xem.', data: [] };
+    }
+  }
+
   // Order APIs
   static async createOrder(data: CreateOrderRequest): Promise<ApiResponse<any>> {
     try {
@@ -372,6 +451,115 @@ export class ApiService {
       return response.data;
     } catch (error: any) {
       return error.response?.data || { success: false, message: 'Lỗi hủy đơn hàng.' };
+    }
+  }
+
+  // ── Review APIs ────────────────────────────────────────────
+
+  /** Submit a product review (user must have received the order) */
+  static async createReview(data: CreateReviewRequest): Promise<ApiResponse<CreateReviewResponse>> {
+    try {
+      const response = await apiClient.post<ApiResponse<CreateReviewResponse>>('/reviews', data);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi gửi đánh giá.' };
+    }
+  }
+
+  /** Get all reviews + stats for a product (public) */
+  static async getProductReviews(
+    productId: number,
+    page = 1,
+    limit = 20,
+  ): Promise<ApiResponse<{ reviews: Review[]; stats: ReviewStats }>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ reviews: Review[]; stats: ReviewStats }>>(
+        `/reviews/product/${productId}`,
+        { params: { page, limit } },
+      );
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải đánh giá.' };
+    }
+  }
+
+  /** Get items in a DELIVERED order that still need a review */
+  static async getPendingReviews(orderId: number): Promise<ApiResponse<PendingReviewItem[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<PendingReviewItem[]>>(
+        `/reviews/pending-for-order/${orderId}`,
+      );
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi kiểm tra đánh giá.' };
+    }
+  }
+
+  /** Check whether the current user already reviewed a product in a given order */
+  static async checkReviewed(
+    productId: number,
+    orderId: number,
+  ): Promise<ApiResponse<{ reviewed: boolean }>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ reviewed: boolean }>>('/reviews/check', {
+        params: { productId, orderId },
+      });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi kiểm tra.' };
+    }
+  }
+
+  /** Get all reviews written by the current user */
+  static async getMyReviews(): Promise<ApiResponse<Review[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<Review[]>>('/reviews/my');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải đánh giá.' };
+    }
+  }
+
+  /** Get overall review status for an order (canReview, daysLeft, allReviewed) */
+  static async getOrderReviewStatus(orderId: number): Promise<ApiResponse<OrderReviewStatus>> {
+    try {
+      const response = await apiClient.get<ApiResponse<OrderReviewStatus>>(
+        `/reviews/order-status/${orderId}`,
+      );
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi kiểm tra trạng thái đánh giá.' };
+    }
+  }
+
+  /** Get current user's loyalty points + coupons + history */
+  static async getMyRewards(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>('/reviews/my-rewards');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải điểm và mã giảm các phần thưởng.' };
+    }
+  }
+
+  /** Check if user can review a specific product (has a delivered order < 10 days ago) */
+  static async checkReviewEligibility(productId: number): Promise<ApiResponse<{ canReview: boolean; orderId?: number }>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ canReview: boolean; orderId?: number }>>(
+        `/reviews/eligibility/${productId}`,
+      );
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi kiểm tra quyền đánh giá.' };
+    }
+  }
+
+  static async validateCoupon(code: string, orderAmount: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post<ApiResponse<any>>('/coupons/validate', { code, orderAmount });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi xác thực mã giảm giá.' };
     }
   }
 }

@@ -21,10 +21,11 @@ type Props = StackScreenProps<RootStackParamList, "OrderDetail">;
 
 const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id?.toString() || "guest";
+  const userId = currentUser?.id?.toString() || 'guest';
   const { orderId } = route.params;
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [order, setOrder]                 = useState<Order | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [orderNumericId, setOrderNumericId] = useState<number | null>(null);
 
   const fetchOrderDetails = async () => {
     try {
@@ -44,15 +45,24 @@ const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   useEffect(() => {
-    // Assume API ApiService.getOrderById isn't created for frontend yet, we filter from complete list
     const getById = async () => {
       try {
         setLoading(true);
-        // Calling the getUserOrders to get it
         const response = await ApiService.getUserOrders(1, 100);
         const found = response.data.find((o) => o.id === orderId.toString());
-        if (found) setOrder(found);
+        if (found) {
+          setOrder(found);
+          // Use the numeric PK returned by the API (order.numericId)
+          if (found.numericId) {
+            setOrderNumericId(found.numericId);
+          } else {
+            // Fallback: try to parse orderId as integer
+            const parsed = parseInt(orderId, 10);
+            setOrderNumericId(!isNaN(parsed) ? parsed : null);
+          }
+        }
       } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
@@ -306,6 +316,34 @@ const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <View className="flex-row justify-between mb-2">
             <Text className="text-gray-600">Tổng tiền hàng</Text>
             <Text className="text-gray-800 font-medium">
+              {(order.subtotal || 0).toLocaleString("vi-VN")} đ
+            </Text>
+          </View>
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Phí vận chuyển</Text>
+            <Text className="text-gray-800 font-medium">
+              {(order.shippingFee || 0).toLocaleString("vi-VN")} đ
+            </Text>
+          </View>
+          {order.discountAmount > 0 && (
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-600">Voucher giảm giá</Text>
+              <Text className="text-green-600 font-medium">
+                -{(order.discountAmount || 0).toLocaleString("vi-VN")} đ
+              </Text>
+            </View>
+          )}
+          {order.pointsUsed > 0 && (
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-600">Dùng điểm tích lũy</Text>
+              <Text className="text-green-600 font-medium">
+                -{(order.pointsUsed || 0).toLocaleString("vi-VN")} đ
+              </Text>
+            </View>
+          )}
+          <View className="flex-row justify-between mt-2 pt-2 border-t border-gray-100">
+            <Text className="text-gray-800 font-bold text-base">Tổng cộng</Text>
+            <Text className="text-red-500 font-bold text-lg">
               {order.totalAmount.toLocaleString("vi-VN")} đ
             </Text>
           </View>
@@ -321,22 +359,63 @@ const OrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Action Buttons Footer */}
-      {(order.canCancel &&
-        order.status !== "CANCEL_REQUESTED" &&
-        order.status !== "CANCELLED") && (
-          <View className="p-4 bg-white border-t border-gray-200 pb-safe">
-            <TouchableOpacity
-              onPress={handleCancelOrder}
-              className="py-3.5 rounded-xl items-center bg-gray-100 border border-gray-300 mb-3"
-            >
-              <Text className="text-gray-800 font-bold text-lg">
-                {order.status === "PREPARING"
-                  ? "Gửi Yêu Cầu Hủy Đơn"
-                  : "Hủy Đơn Hàng"}
-              </Text>
-            </TouchableOpacity>
+      <View style={{ backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+        {/* Cancel button */}
+        {order.canCancel &&
+          order.status !== 'CANCEL_REQUESTED' &&
+          order.status !== 'CANCELLED' && (
+            <View className="px-4 pt-4">
+              <TouchableOpacity
+                onPress={handleCancelOrder}
+                className="py-3.5 rounded-xl items-center bg-gray-100 border border-gray-300"
+              >
+                <Text className="text-gray-800 font-bold text-lg">
+                  {order.status === 'PREPARING' ? 'Gửi Yêu Cầu Hủy Đơn' : 'Hủy Đơn Hàng'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+        {/* Review button or Already Reviewed Badge */}
+        {order.status === 'DELIVERED' && (
+          <View className="px-4 pt-3 pb-4">
+            {order.isReviewed ? (
+              <View className="py-3.5 rounded-xl flex-row justify-center items-center bg-green-50 border border-green-200">
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#059669', fontWeight: '700', fontSize: 16 }}>Đã đánh giá</Text>
+              </View>
+            ) : orderNumericId !== null ? (
+              <>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('WriteReview', {
+                      orderId,
+                      orderId_numeric: orderNumericId,
+                    })
+                  }
+                  className="py-3.5 rounded-xl items-center flex-row justify-center"
+                  style={{ backgroundColor: '#DC2626' }}
+                >
+                  <Ionicons name="star" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 16 }}>
+                    Đánh giá sản phẩm
+                  </Text>
+                </TouchableOpacity>
+                <Text
+                  style={{
+                    textAlign: 'center',
+                    fontSize: 12,
+                    color: '#6B7280',
+                    marginTop: 6,
+                  }}
+                >
+                  🌟 Nhận 500 điểm + mã giảm 10% cho mỗi đánh giá!
+                </Text>
+              </>
+            ) : null}
           </View>
         )}
+      </View>
     </SafeAreaView>
   );
 };

@@ -19,6 +19,10 @@ import CartScreen from '../screens/CartScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import OrdersScreen from '../screens/OrdersScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
+import WriteReviewScreen from '../screens/WriteReviewScreen';
+import MyRewardsScreen  from '../screens/MyRewardsScreen';
+import ProductReviewsScreen from '../screens/ProductReviewsScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -141,6 +145,12 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
         />
 
         <Stack.Screen
+          name="Favorites"
+          component={FavoritesScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
           name="Orders"
           component={OrdersScreen}
           options={{ headerShown: false }}
@@ -151,6 +161,10 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
           component={OrderDetailScreen}
           options={{ headerShown: false }}
         />
+
+        <Stack.Screen name="WriteReview" component={WriteReviewScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="MyRewards"   component={MyRewardsScreen}   options={{ headerShown: false }} />
+        <Stack.Screen name="ProductReviews" component={ProductReviewsScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Product } from "../types/api";
+import { BASE_URL } from "../services/api";
 
 interface ProductCardProps {
   item: Product;
@@ -18,7 +19,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   // Format price
   const formatPrice = (price: number) => {
-    return price.toLocaleString('vi-VN') + ' đ';
+    return (price || 0).toLocaleString('vi-VN') + ' đ';
   };
 
   const discount = item.originalPrice && item.originalPrice > item.price
@@ -28,7 +29,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const getImageUrl = (url: string) => {
     if (!url) return 'https://via.placeholder.com/300?text=No+Image';
     if (url.startsWith('http')) return url;
-    return url;
+    // Prefix relative paths with BASE_URL
+    return `${BASE_URL}/${url}`;
   };
 
   return (

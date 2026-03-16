@@ -7,7 +7,10 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  TextInput,
+  Switch,
 } from "react-native";
+import Toast from 'react-native-toast-message';
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../types/navigation";
 import { useCartStore } from "../store/cartStore";
@@ -47,6 +50,11 @@ const CheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
     district: "",
     city: "",
   });
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -82,14 +90,62 @@ const CheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
     };
 
     loadCachedAddress();
+    fetchLoyaltyBalance();
   }, [currentUser]);
+
+  const fetchLoyaltyBalance = async () => {
+    if (userId === "guest") return;
+    try {
+      const res = await ApiService.getMyRewards();
+      if (res.success && res.data) {
+        setLoyaltyBalance(res.data.points.balance);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const res = await ApiService.validateCoupon(couponCode, totalPrice);
+      if (res.success && res.data) {
+        setAppliedCoupon(res.data);
+        Toast.show({
+          type: 'success',
+          text1: 'Áp dụng thành công',
+          text2: `Đã giảm -${res.data.discountAmount.toLocaleString()}đ cho đơn hàng`,
+          position: 'bottom',
+        });
+      } else {
+        setAppliedCoupon(null);
+        Toast.show({
+          type: 'error',
+          text1: 'Áp dụng thất bại',
+          text2: res.message || "Mã giảm giá không hợp lệ",
+          position: 'bottom',
+        });
+      }
+    } catch (e) {
+      Alert.alert("Lỗi", "Không thể kiểm tra mã giảm giá");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
 
   const cartItems = getCartItems(userId).filter(
     (item) => item.selected !== false,
   );
   const totalPrice = getSelectedTotalPrice(userId);
   const shippingFee: number = 0;
-  const finalTotal = totalPrice + shippingFee;
+
+  const couponDiscount = appliedCoupon?.discountAmount || 0;
+  // Calculate points that can be used (cannot exceed remaining balance and cannot exceed total amount after coupon)
+  const maxPointsPossible = Math.min(loyaltyBalance, totalPrice - couponDiscount);
+  const pointsToUse = usePoints ? maxPointsPossible : 0;
+
+  const finalTotal = Math.max(0, totalPrice + shippingFee - couponDiscount - pointsToUse);
 
   const hasAddress =
     formData.city.trim() !== "" &&
@@ -138,6 +194,9 @@ const CheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
         city: formData.city,
       },
       paymentMethod: "COD",
+      couponCode: appliedCoupon?.code || null,
+      pointsToUse: pointsToUse,
+      shippingFee: shippingFee,
     };
 
     try {
@@ -284,6 +343,90 @@ const CheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
           ))}
         </View>
 
+        {/* Voucher/Coupon Section */}
+        <View className="bg-white mb-2 p-4">
+          <View className="flex-row items-center mb-3">
+            <MaterialCommunityIcons
+              name="ticket-percent-outline"
+              size={22}
+              color="#DC2626"
+            />
+            <Text className="text-base font-bold text-gray-800 ml-2">
+              Ưu đãi & Voucher
+            </Text>
+          </View>
+
+          <View className="flex-row items-center">
+            <View className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1 flex-row items-center">
+              <TextInput
+                placeholder="Nhập mã giảm giá"
+                value={couponCode}
+                onChangeText={setCouponCode}
+                className="flex-1 text-gray-800 h-10"
+                autoCapitalize="characters"
+              />
+              {appliedCoupon && (
+                <TouchableOpacity onPress={() => { setAppliedCoupon(null); setCouponCode(""); }}>
+                  <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={handleApplyCoupon}
+              disabled={validatingCoupon || !couponCode.trim()}
+              className={`ml-3 px-4 h-10 justify-center rounded-lg ${!couponCode.trim() || validatingCoupon ? 'bg-gray-300' : 'bg-[#DC2626]'}`}
+            >
+              <Text className="text-white font-bold">Áp dụng</Text>
+            </TouchableOpacity>
+          </View>
+
+          {appliedCoupon && (
+            <View className="mt-3 bg-red-50 p-2 rounded-lg border border-red-100 flex-row items-center">
+              <Ionicons name="checkmark-circle" size={18} color="#DC2626" />
+              <Text className="text-[#DC2626] font-medium ml-2 flex-1">
+                Đã áp dụng mã {appliedCoupon.code} (-{appliedCoupon.discountAmount.toLocaleString()}đ)
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Loyalty Points Section */}
+        {loyaltyBalance > 0 && (
+          <View className="bg-white mb-2 p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons
+                  name="star-circle"
+                  size={22}
+                  color="#F59E0B"
+                />
+                <View className="ml-2">
+                  <Text className="text-base font-bold text-gray-800">
+                    Dùng {loyaltyBalance.toLocaleString()} điểm
+                  </Text>
+                  <Text className="text-gray-500 text-xs">
+                    (Giảm tối đa {(Math.min(loyaltyBalance, totalPrice - couponDiscount)).toLocaleString()}đ)
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={usePoints}
+                onValueChange={setUsePoints}
+                trackColor={{ false: "#D1D5DB", true: "#FCD34D" }}
+                thumbColor={usePoints ? "#F59E0B" : "#F4F4F5"}
+              />
+            </View>
+            {usePoints && (
+              <View className="mt-2 bg-amber-50 p-2 rounded-lg border border-amber-100 flex-row items-center">
+                <Ionicons name="sparkles" size={16} color="#F59E0B" />
+                <Text className="text-[#B45309] font-medium ml-2">
+                  Tiết kiệm thêm {pointsToUse.toLocaleString()}đ từ điểm cá nhân
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View className="bg-white mb-2 p-4">
           <View className="flex-row items-center mb-3">
             <MaterialCommunityIcons
@@ -335,12 +478,28 @@ const CheckoutScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <View className="bg-white mb-2 p-4">
-          <View className="flex-row justify-between mb-3">
+          <View className="flex-row justify-between mb-2">
             <Text className="text-gray-600 font-medium">Tạm tính:</Text>
             <Text className="text-gray-800 font-bold">
               {totalPrice.toLocaleString("vi-VN")} đ
             </Text>
           </View>
+          {couponDiscount > 0 && (
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-600 font-medium">Giảm giá voucher:</Text>
+              <Text className="text-[#DC2626] font-bold">
+                -{couponDiscount.toLocaleString("vi-VN")} đ
+              </Text>
+            </View>
+          )}
+          {pointsToUse > 0 && (
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-600 font-medium">Dùng điểm tích lũy:</Text>
+              <Text className="text-[#DC2626] font-bold">
+                -{pointsToUse.toLocaleString("vi-VN")} đ
+              </Text>
+            </View>
+          )}
           <View className="flex-row justify-between mb-4 border-b border-gray-100 pb-4">
             <Text className="text-gray-600 font-medium">Phí vận chuyển:</Text>
             <Text className="text-[#DC2626] font-bold">

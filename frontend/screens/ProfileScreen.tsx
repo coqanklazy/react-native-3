@@ -207,6 +207,27 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </View>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
           </TouchableOpacity>
+          
+          {/* My Rewards */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate("MyRewards" as never)}
+            className="flex-row items-center p-4 border-b border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-lg bg-yellow-100 items-center justify-center">
+              <Ionicons name="star" size={20} color="#EAB308" />
+            </View>
+            <View className="flex-1 ml-4">
+              <Text className="text-base font-semibold text-gray-800">
+                Điểm & Ưu đãi của tôi
+              </Text>
+              <Text className="text-xs text-gray-500 mt-1">
+                Quản lý điểm thưởng và mã giảm giá
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+
           {/* Edit Basic Info */}
           {/* Edit Basic Info */}
           <TouchableOpacity

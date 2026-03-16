@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts as useKarla, Karla_400Regular, Karla_600SemiBold } from '@expo-google-fonts/karla';
 import { useFonts as usePlayfair, PlayfairDisplaySC_700Bold } from '@expo-google-fonts/playfair-display-sc';
 import { View, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { RootStackParamList } from './types/navigation';
 import AppNavigator from './navigation/AppNavigator';
@@ -113,6 +114,7 @@ function AppInner() {
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
       />
+      <Toast />
     </>
   );
 }

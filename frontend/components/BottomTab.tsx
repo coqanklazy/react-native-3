@@ -27,7 +27,7 @@ const BottomTab: React.FC = () => {
       icon: "heart",
       iconOutline: "heart-outline",
       label: "Yêu thích",
-      enabled: false,
+      enabled: true,
     },
     {
       name: "Profile",

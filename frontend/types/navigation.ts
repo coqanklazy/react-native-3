@@ -13,6 +13,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   Homepage: undefined;
   Cart: undefined;
+  Favorites: undefined;
   Orders: undefined;
   OrderDetail: { orderId: string };
   Profile: undefined;
@@ -22,6 +23,9 @@ export type RootStackParamList = {
   EditName: undefined;
   ProductDetail: { productId: number };
   Checkout: { fromQuickBuy?: boolean };
+  WriteReview: { orderId: string; orderId_numeric: number };
+  MyRewards: undefined;
+  ProductReviews: { productId: number };
 };
 
 export type NavigationProps = {

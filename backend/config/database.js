@@ -6,7 +6,7 @@ const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+  password: process.env.DB_PASSWORD || '12345',
   database: process.env.DB_NAME || 'DacSanViet',
   waitForConnections: true,
   connectionLimit: 10,
@@ -183,7 +183,245 @@ const ensureApiTables = async () => {
       }
     }
 
+    // Add coupon and points columns to orders table if they don't exist
+    try {
+      const [orderCols] = await pool.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders' AND COLUMN_NAME IN ('coupon_code', 'discount_amount', 'points_used', 'confirmed_at', 'cancelled_at', 'delivered_at')
+      `, [dbConfig.database]);
 
+      const existingCols = orderCols.map(c => c.COLUMN_NAME);
+
+      if (!existingCols.includes('coupon_code')) {
+        await pool.execute('ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(50) NULL');
+        console.log('Added coupon_code column to orders');
+      }
+      if (!existingCols.includes('discount_amount')) {
+        await pool.execute('ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0');
+        console.log('Added discount_amount column to orders');
+      }
+      if (!existingCols.includes('points_used')) {
+        await pool.execute('ALTER TABLE orders ADD COLUMN points_used INT DEFAULT 0');
+        console.log('Added points_used column to orders');
+      }
+      if (!existingCols.includes('confirmed_at')) {
+        await pool.execute('ALTER TABLE orders ADD COLUMN confirmed_at TIMESTAMP NULL');
+        console.log('Added confirmed_at column to orders');
+      }
+      if (!existingCols.includes('cancelled_at')) {
+        await pool.execute('ALTER TABLE orders ADD COLUMN cancelled_at TIMESTAMP NULL');
+        console.log('Added cancelled_at column to orders');
+      }
+      if (!existingCols.includes('delivered_at')) {
+        await pool.execute('ALTER TABLE orders ADD COLUMN delivered_at TIMESTAMP NULL');
+        console.log('Added delivered_at column to orders');
+      }
+    } catch (orderAltError) {
+      console.error('Error altering orders table:', orderAltError.message);
+    }
+
+    // Kiểm tra và tạo bảng product_reviews
+    const [reviewTables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'product_reviews'
+    `, [dbConfig.database]);
+
+    if (reviewTables.length === 0) {
+      const createReviewsTable = `
+        CREATE TABLE product_reviews (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          product_id INT NOT NULL,
+          order_id INT NOT NULL,
+          rating INT NOT NULL CHECK(rating >= 1 AND rating <= 5),
+          comment TEXT,
+          is_approved BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_user_id (user_id),
+          INDEX idx_product_id (product_id),
+          INDEX idx_order_id (order_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+      await pool.execute(createReviewsTable);
+      console.log('Product Reviews table created');
+    } else {
+      console.log('Product Reviews table already exists');
+    }
+
+    // Loyalty Points (Updated for Expiry)
+    const [lpTables] = await pool.execute(`
+      SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'loyalty_points'
+    `, [dbConfig.database]);
+
+    if (lpTables.length === 0) {
+        await pool.execute(`
+          CREATE TABLE loyalty_points (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL UNIQUE,
+            points_balance INT DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+        console.log('Loyalty Points table created');
+    } else {
+        const [cols] = await pool.execute(`
+          SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'loyalty_points' AND COLUMN_NAME = 'total_points'
+        `, [dbConfig.database]);
+        if (cols.length > 0) {
+            await pool.execute('ALTER TABLE loyalty_points DROP COLUMN total_points, DROP COLUMN used_points');
+            await pool.execute('ALTER TABLE loyalty_points ADD COLUMN points_balance INT DEFAULT 0');
+            console.log('Loyalty Points table updated to new schema');
+        }
+    }
+
+    const [ptTables] = await pool.execute(`
+      SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'point_transactions'
+    `, [dbConfig.database]);
+
+    if (ptTables.length === 0) {
+        await pool.execute(`
+          CREATE TABLE point_transactions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            points INT NOT NULL,
+            remaining_points INT NOT NULL DEFAULT 0,
+            type VARCHAR(50) NOT NULL,
+            description TEXT,
+            ref_id VARCHAR(50),
+            expires_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id),
+            INDEX idx_expires_at (expires_at)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+        console.log('Point Transactions table created');
+    } else {
+        const [transCols] = await pool.execute(`
+          SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'point_transactions' AND COLUMN_NAME IN ('expires_at', 'remaining_points')
+        `, [dbConfig.database]);
+        const existingTransCols = transCols.map(c => c.COLUMN_NAME);
+        if (!existingTransCols.includes('expires_at')) {
+            await pool.execute('ALTER TABLE point_transactions MODIFY COLUMN type VARCHAR(50) NOT NULL');
+            await pool.execute('ALTER TABLE point_transactions ADD COLUMN expires_at TIMESTAMP NULL');
+            await pool.execute('ALTER TABLE point_transactions ADD COLUMN remaining_points INT NOT NULL DEFAULT 0');
+            await pool.execute('CREATE INDEX idx_expires_at ON point_transactions(expires_at)');
+            console.log('Point Transactions table updated for expiry');
+        }
+    }
+
+    // Kiểm tra và tạo bảng product_favorites
+    const [pfTables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'product_favorites'
+    `, [dbConfig.database]);
+
+    if (pfTables.length === 0) {
+      const createPFTable = `
+        CREATE TABLE product_favorites (
+          user_id INT NOT NULL,
+          product_id INT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (user_id, product_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+      await pool.execute(createPFTable);
+      console.log('Product Favorites table created');
+    } else {
+      console.log('Product Favorites table already exists');
+    }
+
+    // Kiểm tra và tạo bảng product_views
+    const [pvTables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'product_views'
+    `, [dbConfig.database]);
+
+    if (pvTables.length === 0) {
+      const createPVTable = `
+        CREATE TABLE product_views (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          product_id INT NOT NULL,
+          viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_user_id (user_id),
+          INDEX idx_product_id (product_id),
+          INDEX idx_viewed_at (viewed_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+      await pool.execute(createPVTable);
+      console.log('Product Views table created');
+    } else {
+      console.log('Product Views table already exists');
+    }
+
+    // Kiểm tra và tạo bảng coupons
+    const [couponTables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'coupons'
+    `, [dbConfig.database]);
+
+    if (couponTables.length === 0) {
+      const createCouponTable = `
+        CREATE TABLE coupons (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          code VARCHAR(50) UNIQUE NOT NULL,
+          discount_type ENUM('PERCENT', 'FIXED') NOT NULL,
+          discount_value DECIMAL(10, 2) NOT NULL,
+          min_order_amount DECIMAL(10, 2) DEFAULT 0,
+          max_discount_amount DECIMAL(10, 2),
+          max_uses INT DEFAULT 1,
+          used_count INT DEFAULT 0,
+          source ENUM('SYSTEM', 'REVIEW_REWARD') DEFAULT 'SYSTEM',
+          user_id INT, -- Nếu NULL thì ai cũng dùng được, nếu có ID thì chỉ người đó dùng được
+          expires_at TIMESTAMP NOT NULL,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_code (code),
+          INDEX idx_user_id (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+      await pool.execute(createCouponTable);
+      console.log('Coupons table created');
+    } else {
+      console.log('Coupons table already exists');
+    }
+
+    // Kiểm tra và tạo bảng coupon_usages
+    const [cuTables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'coupon_usages'
+    `, [dbConfig.database]);
+
+    if (cuTables.length === 0) {
+      const createCUTable = `
+        CREATE TABLE coupon_usages (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          coupon_id INT NOT NULL,
+          user_id INT NOT NULL,
+          order_id INT NOT NULL,
+          discount_applied DECIMAL(10, 2) NOT NULL,
+          used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_coupon_id (coupon_id),
+          INDEX idx_user_id (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `;
+      await pool.execute(createCUTable);
+      console.log('Coupon Usages table created');
+    } else {
+      console.log('Coupon Usages table already exists');
+    }
 
     return true;
   } catch (error) {
