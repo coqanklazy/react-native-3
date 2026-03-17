@@ -7,9 +7,9 @@
  * 
  * Ví dụ:
  *   node test-order.js list
- *   node test-order.js update ORD1773642244594359 PREPARING
- *   node test-order.js update ORD1773642244594359 SHIPPING
- *   node test-order.js update ORD1773642244594359 DELIVERED
+ *   node test-order.js update ORD1773643094606854 PREPARING
+ *   node test-order.js update ORD1773643094606854 SHIPPING
+ *   node test-order.js update ORD1773643094606854 DELIVERED
  * 
  * Các trạng thái hợp lệ:
  *   NEW              → Đơn hàng mới
@@ -23,6 +23,9 @@
 
 require('dotenv').config();
 const { pool } = require('./config/database');
+const Notification = require('./models/Notification');
+const LoyaltyPoints = require('./models/LoyaltyPoints');
+const Order = require('./models/Order');
 
 const VALID_STATUSES = ['NEW', 'CONFIRMED', 'PREPARING', 'SHIPPING', 'DELIVERED', 'CANCELLED', 'CANCEL_REQUESTED'];
 
@@ -123,7 +126,53 @@ async function updateStatus(orderNumber, newStatus) {
         );
 
         if (result.affectedRows > 0) {
-            console.log(`\n✅ Cập nhật thành công! Trạng thái mới: ${newStatus} (${newLabel})\n`);
+            console.log(`\n✅ Cập nhật thành công! Trạng thái mới: ${newStatus} (${newLabel})`);
+
+            // 🔔 BỔ SUNG LOGIC THÔNG BÁO VÀ ĐIỂM THƯỞNG (Giống như OrderController)
+            try {
+                const fullOrder = await Order.findById(orderNumber);
+                if (fullOrder && fullOrder.userId) {
+                    const userId = fullOrder.userId;
+
+                    // 1. Nếu giao hàng thành công -> Cộng điểm thưởng
+                    if (newStatus === 'DELIVERED') {
+                        const pointsEarned = Math.floor(parseFloat(fullOrder.totalAmount) / 1000);
+                        if (pointsEarned > 0) {
+                            await LoyaltyPoints.addPoints(
+                                pool, userId, pointsEarned,
+                                'EARN_PURCHASE', 'Tặng điểm mua hàng (Test Script)', fullOrder.numericId
+                            );
+                            console.log(`   🎁 Đã tặng ${pointsEarned} điểm thưởng cho khách hàng.`);
+                        }
+
+                        // Cập nhật delivered_at
+                        await pool.query('UPDATE orders SET delivered_at = NOW() WHERE order_number = ?', [orderNumber]);
+                    }
+
+                    // 2. Tạo bản ghi thông báo trong Database
+                    const labels = {
+                        CONFIRMED: 'Đơn hàng đã được xác nhận',
+                        PREPARING: 'Shop đang chuẩn bị hàng',
+                        SHIPPING: 'Đơn hàng đang được giao',
+                        DELIVERED: 'Đơn hàng đã giao thành công',
+                        CANCELLED: 'Đơn hàng đã bị hủy',
+                    };
+                    const label = labels[newStatus];
+                    if (label) {
+                        await Notification.create({
+                            userId: userId,
+                            type: `ORDER_${newStatus}`,
+                            title: label,
+                            body: `Đơn hàng ${orderNumber} - ${label.toLowerCase()}.`,
+                            data: { orderId: orderNumber, status: newStatus },
+                        });
+                        console.log(`   🔔 Đã lưu thông báo vào Database cho khách hàng.`);
+                    }
+                }
+            } catch (err) {
+                console.error('   ⚠️  Lỗi khi tạo thông báo/điểm:', err.message);
+            }
+            console.log('');
         } else {
             console.log(`\n❌ Cập nhật thất bại.\n`);
         }

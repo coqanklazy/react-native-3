@@ -23,6 +23,8 @@ import WriteReviewScreen from '../screens/WriteReviewScreen';
 import MyRewardsScreen  from '../screens/MyRewardsScreen';
 import ProductReviewsScreen from '../screens/ProductReviewsScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
+import NotificationScreen from '../screens/NotificationScreen';
+import SpendingStatsScreen from '../screens/SpendingStatsScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -165,6 +167,8 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
         <Stack.Screen name="WriteReview" component={WriteReviewScreen} options={{ headerShown: false }} />
         <Stack.Screen name="MyRewards"   component={MyRewardsScreen}   options={{ headerShown: false }} />
         <Stack.Screen name="ProductReviews" component={ProductReviewsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Notifications" component={NotificationScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="SpendingStats" component={SpendingStatsScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -3,6 +3,8 @@ const Product = require('../models/Product');
 const Coupon = require('../models/Coupon');
 const LoyaltyPoints = require('../models/LoyaltyPoints');
 const Review = require('../models/Review');
+const Notification = require('../models/Notification');
+const { notifyUser, notifyAdmin } = require('../socket/socketManager');
 const { pool } = require('../config/database');
 const { validationResult } = require('express-validator');
 
@@ -103,6 +105,39 @@ exports.createOrder = async (req, res) => {
       message: "Đơn hàng đã được tạo thành công",
       data: { order },
     });
+
+    // Notify user + admin after response
+    try {
+      // 1. Thông báo cho User (Lưu DB + Socket)
+      const userNotifBody = `Đơn hàng ${order.id} của bạn đã được đặt thành công. Chúng tôi sẽ xác nhận sớm nhất có thể.`;
+      const userNotif = await Notification.create({
+        userId,
+        type: 'ORDER_NEW',
+        title: 'Đặt hàng thành công',
+        body: userNotifBody,
+        data: { orderId: order.id },
+      });
+      notifyUser(userId, 'notification', userNotif);
+
+      // 2. Thông báo cho Admin (chỉ khi người đặt KHÔNG phải admin)
+      if (req.user.role !== 'ADMIN') {
+        const userName = req.user.fullName || req.user.username || 'Khách hàng';
+        const adminNotifBody = `Có đơn hàng mới ${order.id} từ khách hàng ${userName}. Tổng tiền: ${finalAmount.toLocaleString('vi-VN')}đ`;
+        const adminNotif = await Notification.create({
+          userId: null, // broadcast to admin
+          type: 'ORDER_NEW',
+          title: 'Đơn hàng mới',
+          body: adminNotifBody,
+          data: { orderId: order.id, userName, totalAmount: finalAmount },
+        });
+        
+        // Gửi cả 2 sự kiện socket để tương thích với các màn hình admin cũ/mới
+        notifyAdmin('new_order', { orderId: order.id, userId, totalAmount: finalAmount, userName });
+        notifyAdmin('notification', adminNotif);
+      }
+    } catch (e) {
+      console.error('Notify error:', e.message);
+    }
   } catch (error) {
     if (connection) {
       try { await connection.rollback(); connection.release(); } catch (e) { }
@@ -200,7 +235,7 @@ exports.cancelOrder = async (req, res) => {
 
     // Check if directly cancellable (NEW or CONFIRMED)
     const isDirectlyCancellable = ["NEW", "CONFIRMED"].includes(order.status);
-    
+
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -213,7 +248,7 @@ exports.cancelOrder = async (req, res) => {
       const preShippingStatuses = ["NEW", "CONFIRMED", "PREPARING"];
       if (preShippingStatuses.includes(order.status)) {
         console.log(`Auto-refunding rewards for user cancel: ${orderId}`);
-        
+
         if (order.couponCode) {
           const [couponRows] = await connection.query('SELECT id FROM coupons WHERE code = ?', [order.couponCode]);
           if (couponRows.length > 0) {
@@ -277,7 +312,7 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     const oldOrder = await Order.findById(orderId);
-    const order    = await Order.updateStatus(orderId, status, null, carrierName);
+    const order = await Order.updateStatus(orderId, status, null, carrierName);
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -318,7 +353,7 @@ exports.updateOrderStatus = async (req, res) => {
     if (oldOrder && oldOrder.status !== 'CANCELLED' && status === 'CANCELLED') {
       // Only refund if the order WAS NOT shipped/delivered
       const preShippingStatuses = ["NEW", "CONFIRMED", "PREPARING", "CANCEL_REQUESTED"];
-      
+
       if (preShippingStatuses.includes(oldOrder.status)) {
         let connection;
         try {
@@ -326,7 +361,7 @@ exports.updateOrderStatus = async (req, res) => {
           await connection.beginTransaction();
 
           console.log(`Auto-refunding rewards for Admin cancel: ${orderId}`);
-          
+
           // Refund Coupon
           if (oldOrder.couponCode) {
             const [couponRows] = await connection.query('SELECT id FROM coupons WHERE code = ?', [oldOrder.couponCode]);
@@ -337,7 +372,7 @@ exports.updateOrderStatus = async (req, res) => {
 
           // Refund Points
           if (oldOrder.pointsUsed > 0) {
-              await LoyaltyPoints.refundPoints(connection, oldOrder.userId, oldOrder.pointsUsed, oldOrder.numericId);
+            await LoyaltyPoints.refundPoints(connection, oldOrder.userId, oldOrder.pointsUsed, oldOrder.numericId);
           }
 
           await connection.commit();
@@ -357,6 +392,29 @@ exports.updateOrderStatus = async (req, res) => {
       message: 'Order status updated successfully',
       data: { order },
     });
+
+    // Notify user about status change
+    try {
+      const labels = {
+        CONFIRMED: 'Đơn hàng đã được xác nhận',
+        PREPARING: 'Đang chuẩn bị hàng',
+        SHIPPING: 'Đơn hàng đang được giao',
+        DELIVERED: 'Đơn hàng đã giao thành công',
+        CANCELLED: 'Đơn hàng đã bị hủy',
+        CANCEL_REQUESTED: 'Yêu cầu hủy đơn hàng',
+      };
+      const label = labels[status];
+      if (label && order.userId) {
+        const notif = await Notification.create({
+          userId: order.userId,
+          type: `ORDER_${status}`,
+          title: label,
+          body: `Đơn hàng ${order.id} - ${label.toLowerCase()}.`,
+          data: { orderId: order.id, status },
+        });
+        notifyUser(order.userId, 'notification', notif);
+      }
+    } catch (e) { console.error('Notify error:', e.message); }
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({

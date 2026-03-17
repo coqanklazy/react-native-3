@@ -5,7 +5,52 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts as useKarla, Karla_400Regular, Karla_600SemiBold } from '@expo-google-fonts/karla';
 import { useFonts as usePlayfair, PlayfairDisplaySC_700Bold } from '@expo-google-fonts/playfair-display-sc';
 import { View, ActivityIndicator } from 'react-native';
-import Toast from 'react-native-toast-message';
+import Toast, { BaseToast, InfoToast } from 'react-native-toast-message';
+
+// 🎨 Cấu hình giao diện thông báo giống Hệ thống (giống ảnh bạn gửi)
+const toastConfig = {
+  info: (props: any) => (
+    <InfoToast
+      {...props}
+      style={{ 
+        borderLeftColor: '#4F46E5', // Màu tím Indigo
+        height: 80, 
+        width: '94%',
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 20 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#4B5563'
+      }}
+    />
+  ),
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{ 
+        borderLeftColor: '#10B981', 
+        height: 80, 
+        width: '94%',
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+      }}
+      text1Style={{ fontSize: 16, fontWeight: 'bold' }}
+      text2Style={{ fontSize: 14 }}
+    />
+  ),
+};
 
 import { RootStackParamList } from './types/navigation';
 import AppNavigator from './navigation/AppNavigator';
@@ -13,6 +58,8 @@ import { RealmService } from './services/RealmService';
 import { STORAGE_KEYS } from './services/api';
 import { AuthProvider } from './store/AuthProvider';
 import { useAuth } from './hooks/useAuth';
+import { requestNotificationPermission, setupSocketNotificationListener } from './services/NotificationHelper';
+import { connectSocket, disconnectSocket } from './services/SocketService';
 
 // Inner component that has access to AuthContext
 function AppInner() {
@@ -28,22 +75,30 @@ function AppInner() {
   // Check if user is already logged in when app starts
   useEffect(() => {
     bootstrapAsync();
+    
+    // Xin quyền và thiết lập lắng nghe thông báo hệ thống
+    requestNotificationPermission();
+    const unsubNotifications = setupSocketNotificationListener();
+    
+    return () => {
+      unsubNotifications();
+      disconnectSocket();
+    };
   }, []);
 
   const bootstrapAsync = async () => {
     try {
-      // Check if user has saved token and user data from previous session
       const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
 
-      // If both token and user data exist, user is still logged in
       if (token && userData) {
         setIsLoggedIn(true);
-        // Sync with AuthProvider
         const user = JSON.parse(userData);
         authLogin(user);
+        
+        // Kết nối socket nếu đã có token
+        connectSocket(token);
       } else {
-        // No valid session, user needs to log in
         setIsLoggedIn(false);
       }
     } catch (e) {
@@ -75,7 +130,10 @@ function AppInner() {
       console.log('Error reading user after login:', e);
     }
     // Reset navigation stack to clear auth screen history
-    setTimeout(() => {
+    setTimeout(async () => {
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      if (token) connectSocket(token);
+      
       navigationRef.current?.reset({
         index: 0,
         routes: [{ name: 'Homepage' }],
@@ -114,7 +172,6 @@ function AppInner() {
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
       />
-      <Toast />
     </>
   );
 }
@@ -124,6 +181,7 @@ export default function App(): React.JSX.Element {
   return (
     <AuthProvider>
       <AppInner />
+      <Toast config={toastConfig} /> 
     </AuthProvider>
   );
 }

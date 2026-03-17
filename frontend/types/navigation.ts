@@ -26,6 +26,8 @@ export type RootStackParamList = {
   WriteReview: { orderId: string; orderId_numeric: number };
   MyRewards: undefined;
   ProductReviews: { productId: number };
+  Notifications: undefined;
+  SpendingStats: undefined;
 };
 
 export type NavigationProps = {

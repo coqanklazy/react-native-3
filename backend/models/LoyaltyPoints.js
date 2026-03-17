@@ -1,6 +1,7 @@
 const { pool } = require('../config/database');
 
 class LoyaltyPoints {
+    // user_points table: user_id BIGINT, total_points INT, updated_at DATETIME
     static async getBalance(userId) {
         // Calculate balance from valid transactions (to ensure it's always accurate)
         const [rows] = await pool.query(`

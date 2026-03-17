@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons, FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { NavigationProps } from "../types/navigation";
 import { ApiService } from "../services/api";
@@ -203,6 +203,26 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
               </Text>
               <Text className="text-xs text-gray-500 mt-1">
                 Quản lý và theo dõi đơn hàng
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          {/* Spending Stats */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate("SpendingStats" as never)}
+            className="flex-row items-center p-4 border-b border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-lg bg-blue-100 items-center justify-center">
+              <MaterialCommunityIcons name="chart-line" size={20} color="#3B82F6" />
+            </View>
+            <View className="flex-1 ml-4">
+              <Text className="text-base font-semibold text-gray-800">
+                Thống kê dòng tiền
+              </Text>
+              <Text className="text-xs text-gray-500 mt-1">
+                Xem tổng quan chi tiêu mua sắm
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />

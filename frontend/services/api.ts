@@ -39,10 +39,11 @@ import {
 } from '../types/api';
 
 // Đọc biến môi trường theo chuẩn Expo (EXPO_PUBLIC_*)
-// NOTE: Với thiết bị thật, hãy thay đổi 'localhost' thành địa chỉ IP LAN của máy tính (ví dụ: 192.168.1.x)
-export const API_HOST_VALUE = process.env.EXPO_PUBLIC_API_HOST_REAL_DEVICE ||
-  (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
+// NOTE: Ưu tiên IP LAN từ file .env nếu có
+const DEFAULT_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+export const API_HOST_VALUE = process.env.EXPO_PUBLIC_API_HOST_REAL_DEVICE || DEFAULT_HOST;
 const API_PORT = process.env.EXPO_PUBLIC_API_PORT || '3001';
+
 export const API_BASE_URL = `http://${API_HOST_VALUE}:${API_PORT}/api`;
 export const BASE_URL = `http://${API_HOST_VALUE}:${API_PORT}`;
 
@@ -560,6 +561,43 @@ export class ApiService {
       return response.data;
     } catch (error: any) {
       return error.response?.data || { success: false, message: 'Lỗi xác thực mã giảm giá.' };
+    }
+  }
+
+  // --- Notifications ---
+  static async getNotifications(): Promise<ApiResponse<{ notifications: any[], unreadCount: number }>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ notifications: any[], unreadCount: number }>>('/notifications');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải thông báo.' };
+    }
+  }
+
+  static async markNotificationRead(id: number): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.patch<ApiResponse<any>>(`/notifications/${id}/read`);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi cập nhật thông báo.' };
+    }
+  }
+
+  static async markAllNotificationsRead(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.patch<ApiResponse<any>>('/notifications/read-all');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi cập nhật thông báo.' };
+    }
+  }
+
+  static async getSpendingStats(): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.get<ApiResponse<any>>('/orders/spending-stats');
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: 'Lỗi tải thống kê chi tiêu.' };
     }
   }
 }

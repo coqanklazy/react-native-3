@@ -83,7 +83,7 @@ class Order {
       await connection.commit();
       const newOrder = await this.findById(orderNumber);
       if (newOrder) {
-          newOrder.numericId = orderId; // Use the direct insertId as fallback/source
+        newOrder.numericId = orderId; // Use the direct insertId as fallback/source
       }
       return newOrder;
     } catch (error) {
@@ -187,7 +187,7 @@ class Order {
 
     const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
     const values = Object.values(updates);
-    
+
     let query = `UPDATE orders SET ${fields}, updated_at = NOW() WHERE order_number = ?`;
     const params = [...values, orderId];
 
@@ -223,17 +223,17 @@ class Order {
 
     // 2. If status is NEW but already past 30 mins (should be CONFIRMED soon)
     if (order.status === 'NEW' && now > cancelDeadline) {
-        throw new Error("Đơn hàng đang được hệ thống xác nhận, vui lòng đợi trong giây lát");
+      throw new Error("Đơn hàng đang được hệ thống xác nhận, vui lòng đợi trong giây lát");
     }
 
     // 3. If status is CONFIRMED -> Block cancellation as per user request (Wait for PREPARING)
     if (order.status === 'CONFIRMED') {
-        throw new Error("Đơn hàng đã được xác nhận. Bạn chỉ có thể gửi yêu cầu hủy khi Shop bắt đầu chuẩn bị hàng");
+      throw new Error("Đơn hàng đã được xác nhận. Bạn chỉ có thể gửi yêu cầu hủy khi Shop bắt đầu chuẩn bị hàng");
     }
 
     // 4. If status is PREPARING -> Allow cancellation request (Shop approval needed)
     if (order.status === 'PREPARING') {
-        return await this.updateStatus(orderId, 'CANCEL_REQUESTED', userId, null, connection);
+      return await this.updateStatus(orderId, 'CANCEL_REQUESTED', userId, null, connection);
     }
 
     // Default: Not allowed to cancel in other statuses (SHIPPING, DELIVERED, etc.)
@@ -354,7 +354,7 @@ class Order {
       confirmedAt: order.confirmed_at || null,
       cancelledAt: order.cancelled_at || null,
       deliveredAt: order.delivered_at || null,
-      isReviewed: (order.reviews_count !== undefined && order.items_count !== undefined) 
+      isReviewed: (order.reviews_count !== undefined && order.items_count !== undefined)
         ? (order.reviews_count >= order.items_count && order.items_count > 0)
         : false,
       cancelDeadline: order.order_date
@@ -384,6 +384,56 @@ class Order {
   // Helper: Convert camelCase to snake_case
   static camelToSnake(str) {
     return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  }
+
+  // Get spending statistics for a user
+  static async getSpendingStats(userId) {
+    const [rows] = await pool.query(`
+      SELECT
+        COUNT(*) as total_orders,
+        IFNULL(SUM(total_amount), 0) as total_spent,
+        IFNULL(SUM(CASE WHEN status = 'NEW' THEN total_amount ELSE 0 END), 0) as pending_amount,
+        IFNULL(SUM(CASE WHEN status = 'SHIPPING' THEN total_amount ELSE 0 END), 0) as shipping_amount,
+        IFNULL(SUM(CASE WHEN status = 'DELIVERED' THEN total_amount ELSE 0 END), 0) as delivered_amount,
+        IFNULL(SUM(CASE WHEN status = 'CANCELLED' THEN total_amount ELSE 0 END), 0) as cancelled_amount,
+        SUM(CASE WHEN status = 'NEW' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN status = 'SHIPPING' THEN 1 ELSE 0 END) as shipping_count,
+        SUM(CASE WHEN status = 'DELIVERED' THEN 1 ELSE 0 END) as delivered_count,
+        SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled_count
+      FROM orders WHERE user_id = ?
+    `, [userId]);
+
+    // Monthly spending last 6 months
+    const [monthly] = await pool.query(`
+      SELECT
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        IFNULL(SUM(total_amount), 0) as amount,
+        COUNT(*) as count
+      FROM orders
+      WHERE user_id = ? AND status = 'DELIVERED'
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+      ORDER BY month ASC
+    `, [userId]);
+
+    const s = rows[0];
+    return {
+      totalOrders: parseInt(s.total_orders),
+      totalSpent: parseFloat(s.total_spent),
+      pendingAmount: parseFloat(s.pending_amount),
+      shippingAmount: parseFloat(s.shipping_amount),
+      deliveredAmount: parseFloat(s.delivered_amount),
+      cancelledAmount: parseFloat(s.cancelled_amount),
+      pendingCount: parseInt(s.pending_count),
+      shippingCount: parseInt(s.shipping_count),
+      deliveredCount: parseInt(s.delivered_count),
+      cancelledCount: parseInt(s.cancelled_count),
+      monthlySpending: monthly.map(m => ({
+        month: m.month,
+        amount: parseFloat(m.amount),
+        count: parseInt(m.count),
+      })),
+    };
   }
 }
 

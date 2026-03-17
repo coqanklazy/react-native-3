@@ -19,7 +19,7 @@ class Review {
         try {
             await connection.beginTransaction();
 
-            // Check for duplicate review
+            // Check for duplicate review (Must check per Order)
             const [existing] = await connection.query(
                 'SELECT id FROM product_reviews WHERE user_id = ? AND product_id = ? AND order_id = ?',
                 [userId, productId, orderId]
@@ -39,9 +39,14 @@ class Review {
                   AND o.status = 'DELIVERED'
             `, [orderId, userId, productId]);
 
-            if (orderCheck.length === 0) {
-                throw new Error('Sản phẩm chưa được giao hoặc không thuộc đơn hàng này');
-            }
+            // Get user info for reviewer fields
+            const [userRows] = await connection.query(
+                'SELECT email, full_name, username FROM users WHERE id = ?',
+                [userId]
+            );
+            const user = userRows[0] || {};
+            const reviewerEmail = user.email || '';
+            const reviewerName = user.full_name || user.username || '';
 
             // Enforce 10-day window
             const deliveredAt = orderCheck[0].delivered_at;
@@ -67,7 +72,7 @@ class Review {
                     connection, userId, pointsReward,
                     'EARN_REVIEW', 'Tặng điểm đánh giá sản phẩm', reviewId
                 );
-    
+
                 // Reward: 10%-off coupon (30 days)
                 const couponCode = `REV${userId}${Date.now().toString().slice(-6)}`;
                 await connection.query(
@@ -76,7 +81,7 @@ class Review {
                      VALUES (?, 'PERCENT', 10, 50000, 0, 'REVIEW_REWARD', ?, DATE_ADD(NOW(), INTERVAL 30 DAY))`,
                     [couponCode, userId]
                 );
-                
+
                 reward = {
                     points: pointsReward,
                     couponCode,
@@ -135,21 +140,21 @@ class Review {
         const now = Date.now();
         return rows.map(r => {
             const deliveredAt = r.delivered_at ? new Date(r.delivered_at) : null;
-            const daysSince   = deliveredAt ? (now - deliveredAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
-            const expired     = deliveredAt ? daysSince > REVIEW_WINDOW_DAYS : false;
-            const daysLeft    = deliveredAt
+            const daysSince = deliveredAt ? (now - deliveredAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
+            const expired = deliveredAt ? daysSince > REVIEW_WINDOW_DAYS : false;
+            const daysLeft = deliveredAt
                 ? Math.max(0, Math.ceil(REVIEW_WINDOW_DAYS - daysSince))
                 : REVIEW_WINDOW_DAYS;
 
             return {
-                productId:       r.product_id,
-                productName:     r.product_name,
-                productImage:    r.product_image,
-                price:           parseFloat(r.price),
-                quantity:        r.quantity,
+                productId: r.product_id,
+                productName: r.product_name,
+                productImage: r.product_image,
+                price: parseFloat(r.price),
+                quantity: r.quantity,
                 alreadyReviewed: r.already_reviewed > 0,
-                reviewExpired:   expired,
-                reviewDeadline:  deliveredAt
+                reviewExpired: expired,
+                reviewDeadline: deliveredAt
                     ? new Date(deliveredAt.getTime() + REVIEW_WINDOW_DAYS * 24 * 60 * 60 * 1000)
                     : null,
                 daysLeft,
@@ -171,7 +176,7 @@ class Review {
             ORDER BY r.created_at DESC
             LIMIT ? OFFSET ?
         `, [productId, parseInt(limit), parseInt(offset)]);
-        
+
         // Format avatar URL if needed
         const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
         return rows.map(row => ({
@@ -208,8 +213,8 @@ class Review {
         `, [productId]);
 
         return {
-            reviewCount:  rows[0].review_count,
-            avgRating:    parseFloat(rows[0].avg_rating),
+            reviewCount: rows[0].review_count,
+            avgRating: parseFloat(rows[0].avg_rating),
             distribution: {
                 5: rows[0].five_star,
                 4: rows[0].four_star,
@@ -240,21 +245,21 @@ class Review {
 
         if (rows.length === 0) return null;
 
-        const row         = rows[0];
+        const row = rows[0];
         const deliveredAt = row.delivered_at ? new Date(row.delivered_at) : null;
-        const now         = Date.now();
-        const daysSince   = deliveredAt ? (now - deliveredAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
-        const expired     = deliveredAt ? daysSince > REVIEW_WINDOW_DAYS : false;
-        const daysLeft    = deliveredAt ? Math.max(0, Math.ceil(REVIEW_WINDOW_DAYS - daysSince)) : null;
+        const now = Date.now();
+        const daysSince = deliveredAt ? (now - deliveredAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
+        const expired = deliveredAt ? daysSince > REVIEW_WINDOW_DAYS : false;
+        const daysLeft = deliveredAt ? Math.max(0, Math.ceil(REVIEW_WINDOW_DAYS - daysSince)) : null;
 
         return {
-            canReview:      row.status === 'DELIVERED' && !expired,
-            allReviewed:    row.reviewed_items >= row.total_items,
+            canReview: row.status === 'DELIVERED' && !expired,
+            allReviewed: row.reviewed_items >= row.total_items,
             daysLeft,
             reviewDeadline: deliveredAt
                 ? new Date(deliveredAt.getTime() + REVIEW_WINDOW_DAYS * 24 * 60 * 60 * 1000)
                 : null,
-            totalItems:    row.total_items,
+            totalItems: row.total_items,
             reviewedItems: row.reviewed_items,
         };
     }

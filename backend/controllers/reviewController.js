@@ -1,6 +1,10 @@
-const Review        = require('../models/Review');
+const Product = require('../models/Product');
+const Review = require('../models/Review');
 const LoyaltyPoints = require('../models/LoyaltyPoints');
-const { pool }      = require('../config/database');
+const { pool } = require('../config/database');
+const Notification = require('../models/Notification');
+const { notifyAdmin } = require('../socket/socketManager');
+const { validationResult } = require('express-validator');
 
 // ── POST /api/reviews ─────────────────────────────────────────────────────────
 exports.createReview = async (req, res) => {
@@ -12,11 +16,36 @@ exports.createReview = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Thiếu thông tin bắt buộc' });
         }
 
-        const result = await Review.create({ userId, productId, orderId, rating, comment });
+        const review = await Review.create({ userId, productId, orderId, rating, comment });
+
+        // Notify admin about new review (only if reviewer is NOT admin)
+        try {
+            if (req.user.role !== 'ADMIN') {
+                const userName = req.user.fullName || req.user.username || 'Người dùng';
+
+                // Lấy tên sản phẩm để thông báo cho trực quan
+                const product = await Product.findById(productId);
+                const productName = product ? product.name : `#${productId}`;
+
+                const notif = await Notification.create({
+                    userId: null, // broadcast to admin
+                    type: 'NEW_REVIEW',
+                    title: 'Đánh giá sản phẩm mới',
+                    body: `${userName} đã gửi đánh giá ${rating} sao cho sản phẩm "${productName}".`,
+                    data: { productId, rating, reviewId: review.id, userName, productName },
+                });
+                // Gửi cả sự kiện 'new_review' và 'notification' để đảm bảo admin nhận được
+                notifyAdmin('new_review', notif);
+                notifyAdmin('notification', notif);
+            }
+        } catch (e) {
+            console.error('Notify error:', e.message);
+        }
+
         return res.status(201).json({
             success: true,
             message: 'Đánh giá thành công! Bạn đã nhận được phần thưởng.',
-            data: result,
+            data: review,
         });
     } catch (error) {
         const status = error.message.includes('ký tự') || error.message.includes('sao') ? 400 : 500;
@@ -100,7 +129,7 @@ exports.checkEligibility = async (req, res) => {
 // ── GET /api/reviews/pending-for-order/:orderId ───────────────────────────────
 exports.getPendingReviewsForOrder = async (req, res) => {
     try {
-        const userId      = req.user.id;
+        const userId = req.user.id;
         const { orderId } = req.params;  // numeric order id
 
         const items = await Review.getPendingItems(userId, orderId);
@@ -113,7 +142,7 @@ exports.getPendingReviewsForOrder = async (req, res) => {
 // ── GET /api/reviews/order-status/:orderId ────────────────────────────────────
 exports.getOrderReviewStatus = async (req, res) => {
     try {
-        const userId      = req.user.id;
+        const userId = req.user.id;
         const { orderId } = req.params;
         const status = await Review.getOrderReviewStatus(userId, orderId);
         if (!status) {
@@ -150,12 +179,24 @@ exports.getMyRewards = async (req, res) => {
                 points: {
                     balance: balance.current_balance || 0,
                 },
-                coupons:  coupons[0],   // coupons[0] is the rows array
-                history:  history.slice(0, 30),
+                coupons: coupons[0],   // coupons[0] is the rows array
+                history: history.slice(0, 30),
             },
         });
     } catch (error) {
         console.error('getMyRewards error:', error);
         return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getReviewableItems = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { orderId } = req.params;
+        const items = await Review.getReviewableItems(userId, orderId);
+        res.json({ success: true, data: items });
+    } catch (error) {
+        console.error('Get reviewable items error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
     }
 };
